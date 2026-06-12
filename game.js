@@ -32,12 +32,14 @@ const PATH_CELLS = new Set();
 
 // ── Tower definitions ─────────────────────────────────────────
 // unlockWave: 0 = available from start, N = unlocks after completing wave N
+// upgrades: [lvl0→1 cost, lvl1→2 cost, lvl2→3 cost]
 const TOWER_TYPES = {
-  arrow:  { label: 'Arrow',     cost: 50,  color: 0x4488ff, range: 120, damage: 20,  fireRate: 1000, projColor: 0x88bbff, projSpeed: 300,  dmgColor: '#aaccff', sfxFire: 'arrow',     sfxHit: 'arrow',     unlockWave: 0, icon: '🏹', desc: 'Fast & cheap'           },
-  cannon: { label: 'Cannon',    cost: 100, color: 0xff8800, range: 100, damage: 60,  fireRate: 2000, projColor: 0xff4400, projSpeed: 220,  dmgColor: '#ff8844', sfxFire: 'cannon',    sfxHit: 'cannon',    unlockWave: 0, icon: '💣', desc: 'Slow, hard hit'         },
-  sniper: { label: 'Trebuchet', cost: 150, color: 0xaa44ff, range: 220, damage: 45,  fireRate: 2500, projColor: 0xdd88ff, projSpeed: 500,  dmgColor: '#dd88ff', sfxFire: 'trebuchet', sfxHit: 'trebuchet', unlockWave: 0, icon: '🪨', desc: 'Long range'             },
-  tesla:  { label: 'Titan',     cost: 300, color: 0x88aacc, range: 150, damage: 160, fireRate: 1600, projColor: 0xeeeeff, projSpeed: 999,  dmgColor: '#aaddff', sfxFire: 'tesla',     sfxHit: 'tesla',     unlockWave: 2, icon: '🗿', desc: 'Lightning bolts'        },
-  flame:  { label: 'Dragon',    cost: 450, color: 0x44bb44, range: 80,  damage: 250, fireRate: 550,  projColor: 0xff6600, projSpeed: 180,  dmgColor: '#ff4400', sfxFire: 'flame',     sfxHit: 'flame',     unlockWave: 4, icon: '🐉', desc: 'Fire breath, close range' },
+  arrow:  { label: 'Arrow',     cost: 50,  color: 0x4488ff, range: 120, damage: 20,  fireRate: 1000, projColor: 0x88bbff, projSpeed: 300,  dmgColor: '#aaccff', sfxFire: 'arrow',     sfxHit: 'arrow',     unlockWave: 0, icon: '🏹', desc: 'Fast & cheap',           upgrades: [40,  75,  130] },
+  cannon: { label: 'Cannon',    cost: 100, color: 0xff8800, range: 100, damage: 60,  fireRate: 2000, projColor: 0xff4400, projSpeed: 220,  dmgColor: '#ff8844', sfxFire: 'cannon',    sfxHit: 'cannon',    unlockWave: 0, icon: '💣', desc: 'Slow, hard hit',         upgrades: [55,  100, 175] },
+  sniper: { label: 'Trebuchet', cost: 150, color: 0xaa44ff, range: 220, damage: 45,  fireRate: 2500, projColor: 0xdd88ff, projSpeed: 500,  dmgColor: '#dd88ff', sfxFire: 'trebuchet', sfxHit: 'trebuchet', unlockWave: 0, icon: '🪨', desc: 'Long range',             upgrades: [65,  120, 210] },
+  mine:   { label: 'Mine',      cost: 100, color: 0x886633, range: 0,   damage: 0,   fireRate: 99999,projColor: 0xffd700, projSpeed: 1,    dmgColor: '#ffd700', sfxFire: 'interest',  sfxHit: 'interest',  unlockWave: 0, icon: '⛏️', desc: '+2% interest/upgrade',  upgrades: [75,  125, 200] },
+  tesla:  { label: 'Titan',     cost: 300, color: 0x88aacc, range: 150, damage: 160, fireRate: 1600, projColor: 0xeeeeff, projSpeed: 999,  dmgColor: '#aaddff', sfxFire: 'tesla',     sfxHit: 'tesla',     unlockWave: 2, icon: '🗿', desc: 'Lightning bolts',        upgrades: [100, 175, 300] },
+  flame:  { label: 'Dragon',    cost: 450, color: 0x44bb44, range: 80,  damage: 250, fireRate: 550,  projColor: 0xff6600, projSpeed: 180,  dmgColor: '#ff4400', sfxFire: 'flame',     sfxHit: 'flame',     unlockWave: 4, icon: '🐉', desc: 'Fire breath, close range', upgrades: [120, 210, 360] },
 };
 
 // ── Enemy factions & types ────────────────────────────────────
@@ -441,6 +443,14 @@ const DRAGON_COLORS = [0x44bb44, 0x2266ff, 0xff2200, 0x111111];
 const DRAGON_WING_COLORS = [0x2a8830, 0x1144cc, 0xbb1100, 0x222222];
 const DRAGON_NAMES = ['Green Dragon', 'Blue Dragon', 'Red Dragon', 'Black Dragon'];
 
+function getTotalMineBonus() {
+  let bonus = 0;
+  for (const t of towers) {
+    if (t.isMine) bonus += (1 + t.dmgLevel) * INTEREST_RATE;
+  }
+  return bonus;
+}
+
 function globalUpgradeTier() {
   // Returns the highest tier T such that every placed tower has every stat >= T
   if (towers.length === 0) return 0;
@@ -485,6 +495,20 @@ class Tower {
 
     this.isDragon = (type === 'flame');
     this.isTitan  = (type === 'tesla');
+    this.isMine   = (type === 'mine');
+
+    if (this.isMine) {
+      this.base = scene.add.rectangle(this.x, this.y, CELL-4, CELL-4, 0x000000, 0).setDepth(5);
+      this.base.setStrokeStyle(2, 0xffffff, 0.7);
+      this.customGfx = scene.add.graphics().setDepth(6);
+      this.dragonGfx = null;
+      this.barrel = scene.add.rectangle(this.x, this.y, 1, 1, 0x000000, 0).setDepth(5);
+      this.rangeRing = scene.add.circle(this.x, this.y, 1, 0xffffff, 0).setDepth(1); // invisible
+      this.rangeRing.setStrokeStyle(0, 0xffffff, 0);
+      this.iconText = scene.add.text(this.x, this.y, '', { fontSize: '18px' }).setOrigin(0.5).setDepth(7);
+      this.redrawMine();
+      return;
+    }
 
     if (this.isDragon || this.isTitan) {
       this.base = scene.add.rectangle(this.x, this.y, CELL-4, CELL-4, 0x000000, 0).setDepth(5);
@@ -606,13 +630,60 @@ class Tower {
     this.baseDef = { ...TOWER_TYPES['flame'], label: DRAGON_NAMES[tier], color: bc };
   }
 
+  redrawMine() {
+    const g = this.customGfx;
+    if (!g) return;
+    g.clear();
+    const x = this.x, y = this.y;
+    const bonus = (1 + this.dmgLevel) * 2;
+
+    // Dark shaft
+    g.fillStyle(0x110a00, 1);
+    g.fillRect(x-12, y-10, 24, 22);
+
+    // Wooden support frame
+    g.fillStyle(0x7a4a20, 1);
+    g.fillRect(x-14, y-13, 28, 5);   // top beam
+    g.fillRect(x-14, y+10, 28, 5);   // bottom beam
+    g.fillRect(x-14, y-13, 5, 28);   // left post
+    g.fillRect(x+9,  y-13, 5, 28);   // right post
+
+    // Cross braces inside shaft
+    g.lineStyle(2, 0x5a3010, 0.9);
+    g.beginPath(); g.moveTo(x-10, y-8); g.lineTo(x+10, y+8); g.strokePath();
+    g.beginPath(); g.moveTo(x+10, y-8); g.lineTo(x-10, y+8); g.strokePath();
+
+    // Gold vein flecks
+    g.fillStyle(0xffd700, 0.85);
+    g.fillRect(x-8, y-4, 3, 2);
+    g.fillRect(x+5, y+1, 4, 2);
+    g.fillRect(x-2, y+5, 2, 3);
+    g.fillRect(x+2, y-6, 3, 2);
+
+    // Interest rate badge
+    g.fillStyle(0x443300, 0.9);
+    g.fillRoundedRect(x-14, y+16, 28, 12, 3);
+    g.fillStyle(0xffd700, 1);
+
+    // Selection outline
+    const sel = this.base.strokeColor === 0xffd700;
+    g.lineStyle(2, sel ? 0xffd700 : 0x886633, sel ? 1 : 0.6);
+    g.strokeRect(x-14, y-13, 28, 41);
+
+    // Interest label drawn via text (update the iconText)
+    this.iconText.setVisible(true);
+    this.iconText.setText('+' + bonus + '%');
+    this.iconText.setStyle({ fontSize: '9px', color: '#ffd700', fontFamily: 'Arial Black' });
+    this.iconText.setPosition(x, y + 22);
+  }
+
   _icon(t) { return TOWER_TYPES[t].icon; }
 
   get damage()   { return Math.floor(this.baseDef.damage   * (1 + this.dmgLevel   * 0.4)); }
   get range()    { return Math.floor(this.baseDef.range    * (1 + this.rangeLevel * 0.3)); }
   get fireRate() { return Math.floor(this.baseDef.fireRate * (1 - this.rateLevel  * 0.2)); }
 
-  upgradeCost(level) { return (level + 1) * 75; }
+  upgradeCost(level) { return this.baseDef.upgrades ? this.baseDef.upgrades[level] : (level + 1) * 75; }
 
   upgrade(stat) {
     const key = stat + 'Level';
@@ -623,7 +694,8 @@ class Tower {
     gold -= cost;
     goldText.setText('💰 Gold: ' + gold);
     this[key]++;
-    this.rangeRing.setRadius(this.range);
+    if (!this.isMine) this.rangeRing.setRadius(this.range);
+    if (this.isMine) this.redrawMine();
     refreshAllDragons();
     return true;
   }
@@ -633,6 +705,7 @@ class Tower {
     this.rangeRing.setStrokeStyle(1, 0xffd700, sel ? 0.5 : 0.15);
     if (this.isDragon) this.redrawDragon(globalUpgradeTier());
     if (this.isTitan)  this.redrawTitan();
+    if (this.isMine)   this.redrawMine();
   }
 
   // Move all graphics to pixel position px, py
@@ -640,9 +713,10 @@ class Tower {
     this.x = px; this.y = py;
     this.base.setPosition(px, py);
     this.rangeRing.setPosition(px, py);
-    this.iconText.setPosition(px, py);
+    this.iconText.setPosition(px, py + (this.isMine ? 22 : 0));
     if (this.isDragon) this.redrawDragon(globalUpgradeTier());
     else if (this.isTitan) this.redrawTitan();
+    else if (this.isMine) this.redrawMine();
     else this.barrel.setPosition(px + 12, py);
   }
 
@@ -675,6 +749,7 @@ class Tower {
   }
 
   update(delta, enemies) {
+    if (this.isMine) return; // mines don't shoot
     this.cooldown -= delta;
     if (this.cooldown > 0) return;
     let target = null, closest = Infinity;
@@ -834,24 +909,44 @@ class UpgradePanel {
     const sellPrice = Math.floor(t.baseDef.cost * 0.75);
     this.sellBtnTxt.setText(`💰 Sell ${sellPrice}g`);
     this.sellBtn.setFillStyle(0x882222);
-    const stats = [
-      { level: t.dmgLevel,   stat: 'dmg' },
-      { level: t.rangeLevel, stat: 'range' },
-      { level: t.rateLevel,  stat: 'rate' },
-    ];
-    this.rows.forEach((row, i) => {
-      const lvl  = stats[i].level;
-      const stars = '★'.repeat(lvl) + '☆'.repeat(MAX_UPGRADE - lvl);
-      row.lvl.setText(stars);
+    if (t.isMine) {
+      // Mine: single interest upgrade row, hide others
+      this.rows[0].lbl.setText('⛏️ Interest +2%');
+      const lvl = t.dmgLevel;
+      this.rows[0].lvl.setText('★'.repeat(lvl) + '☆'.repeat(MAX_UPGRADE - lvl));
       if (lvl >= MAX_UPGRADE) {
-        row.btn.setFillStyle(0x444444).removeInteractive();
-        row.bTxt.setText('MAX').setColor('#888888');
+        this.rows[0].btn.setFillStyle(0x444444).removeInteractive();
+        this.rows[0].bTxt.setText('MAX').setColor('#888888');
       } else {
         const cost = t.upgradeCost(lvl);
-        row.btn.setFillStyle(gold >= cost ? 0x226622 : 0x662222).setInteractive();
-        row.bTxt.setText(cost + 'g').setColor(gold >= cost ? '#aaffaa' : '#ff8888');
+        this.rows[0].btn.setFillStyle(gold >= cost ? 0x226622 : 0x662222).setInteractive();
+        this.rows[0].bTxt.setText(cost + 'g').setColor(gold >= cost ? '#aaffaa' : '#ff8888');
       }
-    });
+      this.rows[1].lbl.setText(''); this.rows[1].lvl.setText(''); this.rows[1].btn.setVisible(false); this.rows[1].bTxt.setText('');
+      this.rows[2].lbl.setText(''); this.rows[2].lvl.setText(''); this.rows[2].btn.setVisible(false); this.rows[2].bTxt.setText('');
+    } else {
+      this.rows[0].lbl.setText('⚔️  Damage');
+      this.rows[1].lbl.setText('📡 Range');
+      this.rows[2].lbl.setText('⚡ Fire Rate');
+      this.rows[1].btn.setVisible(true); this.rows[2].btn.setVisible(true);
+      const stats = [
+        { level: t.dmgLevel,   stat: 'dmg' },
+        { level: t.rangeLevel, stat: 'range' },
+        { level: t.rateLevel,  stat: 'rate' },
+      ];
+      this.rows.forEach((row, i) => {
+        const lvl  = stats[i].level;
+        row.lvl.setText('★'.repeat(lvl) + '☆'.repeat(MAX_UPGRADE - lvl));
+        if (lvl >= MAX_UPGRADE) {
+          row.btn.setFillStyle(0x444444).removeInteractive();
+          row.bTxt.setText('MAX').setColor('#888888');
+        } else {
+          const cost = t.upgradeCost(lvl);
+          row.btn.setFillStyle(gold >= cost ? 0x226622 : 0x662222).setInteractive();
+          row.bTxt.setText(cost + 'g').setColor(gold >= cost ? '#aaffaa' : '#ff8888');
+        }
+      });
+    }
   }
 
   hide() {
@@ -1290,7 +1385,7 @@ function create() {
   this._shopBtns = {};
   this._shopScene = this;
   const keys = Object.keys(TOWER_TYPES);
-  const btnW = 140, gap = 10;
+  const btnW = 118, gap = 8;
   const totalW = keys.length * btnW + (keys.length - 1) * gap;
   let bx = (800 - totalW) / 2 + btnW / 2;
 
@@ -1299,10 +1394,10 @@ function create() {
     const locked = def.unlockWave > 0;
     const bg = this.add.rectangle(bx, shopY, btnW, 58, locked ? 0x1a1a1a : 0x222244).setDepth(10).setInteractive();
     bg.setStrokeStyle(2, key === selectedTowerType ? 0xffd700 : (locked ? 0x333333 : 0x444466));
-    const iconTxt  = this.add.text(bx - 52, shopY - 14, def.icon,             { fontSize: '18px' }).setOrigin(0, 0.5).setDepth(11);
-    const nameTxt  = this.add.text(bx - 30, shopY - 14, def.label,            { fontSize: '12px', fontFamily: 'Arial Black', color: locked ? '#555555' : '#ffffff' }).setOrigin(0, 0.5).setDepth(11);
-    const costTxt  = this.add.text(bx - 52, shopY + 4,  '💰' + def.cost,      { fontSize: '11px', color: locked ? '#554400' : '#ffd700' }).setOrigin(0, 0.5).setDepth(11);
-    const descTxt  = this.add.text(bx - 52, shopY + 20, def.desc,             { fontSize: '10px', color: locked ? '#444444' : '#aaaaaa' }).setOrigin(0, 0.5).setDepth(11);
+    const iconTxt  = this.add.text(bx - 44, shopY - 14, def.icon,             { fontSize: '16px' }).setOrigin(0, 0.5).setDepth(11);
+    const nameTxt  = this.add.text(bx - 24, shopY - 14, def.label,            { fontSize: '11px', fontFamily: 'Arial Black', color: locked ? '#555555' : '#ffffff' }).setOrigin(0, 0.5).setDepth(11);
+    const costTxt  = this.add.text(bx - 44, shopY + 4,  '💰' + def.cost,      { fontSize: '10px', color: locked ? '#554400' : '#ffd700' }).setOrigin(0, 0.5).setDepth(11);
+    const descTxt  = this.add.text(bx - 44, shopY + 20, def.desc,             { fontSize: '9px',  color: locked ? '#444444' : '#aaaaaa' }).setOrigin(0, 0.5).setDepth(11);
     const lockTxt  = this.add.text(bx,      shopY,      locked ? `🔒 Unlocks\nafter Wave ${def.unlockWave}` : '', { fontSize: '10px', color: '#888800', align: 'center' }).setOrigin(0.5).setDepth(12);
 
     bg.on('pointerdown', () => {
@@ -1655,11 +1750,13 @@ function update(time, delta) {
     interestTimer += delta;
     if (interestTimer >= INTEREST_INTERVAL) {
       interestTimer = 0;
-      const earned = Math.floor(gold * INTEREST_RATE);
+      const effectiveRate = INTEREST_RATE + getTotalMineBonus();
+      const earned = Math.floor(gold * effectiveRate);
       if (earned > 0) {
         gold += earned;
         goldText.setText('💰 Gold: ' + gold);
-        interestText.setText('+' + earned + ' interest (2%)');
+        const pct = Math.round(effectiveRate * 100);
+        interestText.setText('+' + earned + ' interest (' + pct + '%)');
         SFX.play('interest');
         this.time.delayedCall(2000, () => interestText.setText(''));
       }
