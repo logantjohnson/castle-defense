@@ -2,22 +2,53 @@
 const CELL = 40; // grid cell size in pixels
 const HUD_H = 36;
 
-const PATH_WAYPOINTS = [
-  { x: 0,   y: 280 },
-  { x: 160, y: 280 },
-  { x: 160, y: 440 },
-  { x: 360, y: 440 },
-  { x: 360, y: 160 },
-  { x: 600, y: 160 },
-  { x: 600, y: 440 },
-  { x: 800, y: 440 },
-];
+// Three distinct path layouts — one per faction map
+const MAP_PATHS = {
+  barbarian: [
+    { x: 0,   y: 280 },
+    { x: 200, y: 280 },
+    { x: 200, y: 440 },
+    { x: 440, y: 440 },
+    { x: 440, y: 160 },
+    { x: 640, y: 160 },
+    { x: 640, y: 440 },
+    { x: 800, y: 440 },
+  ],
+  undead: [
+    { x: 0,   y: 160 },
+    { x: 280, y: 160 },
+    { x: 280, y: 400 },
+    { x: 80,  y: 400 },
+    { x: 80,  y: 480 },
+    { x: 520, y: 480 },
+    { x: 520, y: 240 },
+    { x: 720, y: 240 },
+    { x: 720, y: 480 },
+    { x: 800, y: 480 },
+  ],
+  dark: [
+    { x: 0,   y: 100 },
+    { x: 160, y: 100 },
+    { x: 160, y: 360 },
+    { x: 400, y: 360 },
+    { x: 400, y: 120 },
+    { x: 600, y: 120 },
+    { x: 600, y: 400 },
+    { x: 320, y: 400 },
+    { x: 320, y: 480 },
+    { x: 680, y: 480 },
+    { x: 680, y: 260 },
+    { x: 800, y: 260 },
+  ],
+};
+let currentPath = MAP_PATHS.barbarian;
 
 // Cells occupied by the path (blocked from tower placement)
-const PATH_CELLS = new Set();
-(function buildPathCells() {
-  for (let i = 0; i < PATH_WAYPOINTS.length - 1; i++) {
-    const a = PATH_WAYPOINTS[i], b = PATH_WAYPOINTS[i + 1];
+let PATH_CELLS = new Set();
+function buildPathCells(path) {
+  PATH_CELLS.clear();
+  for (let i = 0; i < path.length - 1; i++) {
+    const a = path[i], b = path[i + 1];
     if (a.x === b.x) {
       const minY = Math.min(a.y, b.y), maxY = Math.max(a.y, b.y);
       for (let y = minY; y <= maxY; y += CELL)
@@ -28,7 +59,8 @@ const PATH_CELLS = new Set();
         PATH_CELLS.add(`${Math.floor(x/CELL)},${Math.floor(a.y/CELL)}`);
     }
   }
-})();
+}
+buildPathCells(currentPath);
 
 // ── Tower definitions ─────────────────────────────────────────
 // unlockWave: 0 = available from start, N = unlocks after completing wave N
@@ -38,42 +70,49 @@ const TOWER_TYPES = {
   cannon: { label: 'Cannon',    cost: 100, color: 0xff8800, range: 100, damage: 60,  fireRate: 2000, projColor: 0xff4400, projSpeed: 220,  dmgColor: '#ff8844', sfxFire: 'cannon',    sfxHit: 'cannon',    unlockWave: 0, icon: '💣', desc: 'Slow, hard hit',         upgrades: [55,  100, 175] },
   sniper: { label: 'Trebuchet', cost: 150, color: 0xaa44ff, range: 220, damage: 45,  fireRate: 2500, projColor: 0xdd88ff, projSpeed: 500,  dmgColor: '#dd88ff', sfxFire: 'trebuchet', sfxHit: 'trebuchet', unlockWave: 0, icon: '🪨', desc: 'Long range',             upgrades: [65,  120, 210] },
   mine:   { label: 'Mine',      cost: 100, color: 0x886633, range: 0,   damage: 0,   fireRate: 99999,projColor: 0xffd700, projSpeed: 1,    dmgColor: '#ffd700', sfxFire: 'interest',  sfxHit: 'interest',  unlockWave: 0, icon: '⛏️', desc: '+2% interest/upgrade',  upgrades: [75,  125, 200] },
-  tesla:  { label: 'Titan',     cost: 300, color: 0x88aacc, range: 150, damage: 160, fireRate: 1600, projColor: 0xeeeeff, projSpeed: 999,  dmgColor: '#aaddff', sfxFire: 'tesla',     sfxHit: 'tesla',     unlockWave: 2, icon: '🗿', desc: 'Lightning bolts',        upgrades: [100, 175, 300] },
-  flame:  { label: 'Dragon',    cost: 450, color: 0x44bb44, range: 80,  damage: 250, fireRate: 550,  projColor: 0xff6600, projSpeed: 180,  dmgColor: '#ff4400', sfxFire: 'flame',     sfxHit: 'flame',     unlockWave: 4, icon: '🐉', desc: 'Fire breath, close range', upgrades: [120, 210, 360] },
+  tesla:  { label: 'Titan',     cost: 300, color: 0x88aacc, range: 150, damage: 160, fireRate: 1600, projColor: 0xeeeeff, projSpeed: 999,  dmgColor: '#aaddff', sfxFire: 'tesla',     sfxHit: 'tesla',     unlockWave: 3, icon: '🗿', desc: 'Lightning bolts',        upgrades: [100, 175, 300] },
+  flame:  { label: 'Dragon',    cost: 450, color: 0x44bb44, range: 80,  damage: 250, fireRate: 550,  projColor: 0xff6600, projSpeed: 180,  dmgColor: '#ff4400', sfxFire: 'flame',     sfxHit: 'flame',     unlockWave: 6, icon: '🐉', desc: 'Fire breath, close range', upgrades: [120, 210, 360] },
 };
 
 // ── Enemy factions & types ────────────────────────────────────
 const FACTIONS = {
-  barbarian: { name: 'Barbarian Horde',   color: '#cc3300', waves: [1,6]  },
-  undead:    { name: 'Undead Legion',     color: '#44aaaa', waves: [7,12] },
-  dark:      { name: 'Dark Magic Army',   color: '#9933cc', waves: [13,18] },
+  barbarian: { name: 'Desert Wastes',   color: '#cc3300', waves: [1,10]  },
+  undead:    { name: 'Haunted Forest',  color: '#44aaaa', waves: [11,20] },
+  dark:      { name: 'Volcanic Peaks',  color: '#9933cc', waves: [21,30] },
 };
 
 // shape: 'square' | 'circle' | 'diamond' | 'triangle'
+// bossOnly: true means only spawned as the wave boss, never in normal pool
 const ENEMY_TYPES = {
-  // ── Barbarian Faction (waves 1-6) ──────────────────────────
-  goblin:   { label:'Goblin',   faction:'barbarian', color:0x44aa22, size:18, speedMult:1.6, hpMult:0.5,  reward:10, lives:1, wave:1, shape:'square'   },
-  orc:      { label:'Orc',      faction:'barbarian', color:0x886600, size:24, speedMult:1.0, hpMult:1.0,  reward:18, lives:1, wave:2, shape:'square'   },
-  wolf:     { label:'Wolf',     faction:'barbarian', color:0x997755, size:20, speedMult:2.0, hpMult:0.7,  reward:22, lives:1, wave:2, shape:'circle'   },
-  ogre:     { label:'Ogre',     faction:'barbarian', color:0xcc6600, size:32, speedMult:0.7, hpMult:3.0,  reward:40, lives:2, wave:3, shape:'square'   },
-  troll:    { label:'Troll',    faction:'barbarian', color:0x336633, size:30, speedMult:0.8, hpMult:4.0,  reward:50, lives:2, wave:4, shape:'circle'   },
-  cyclops:  { label:'CYCLOPS',  faction:'barbarian', color:0xaa2200, size:44, speedMult:0.55,hpMult:10.0, reward:130,lives:4, wave:6, shape:'diamond'  },
+  // ── Barbarian Faction (waves 1-10) ─────────────────────────
+  goblin:         { label:'Goblin',         faction:'barbarian', color:0x44aa22, size:18, speedMult:1.6, hpMult:0.5,  reward:10,  lives:1, wave:1,  shape:'square'                    },
+  wolf:           { label:'Wolf',           faction:'barbarian', color:0x997755, size:20, speedMult:2.0, hpMult:0.7,  reward:22,  lives:1, wave:1,  shape:'circle'                    },
+  orc:            { label:'Orc',            faction:'barbarian', color:0x886600, size:24, speedMult:1.0, hpMult:1.0,  reward:18,  lives:1, wave:2,  shape:'square'                    },
+  ogre:           { label:'Ogre',           faction:'barbarian', color:0xcc6600, size:32, speedMult:0.7, hpMult:3.0,  reward:40,  lives:2, wave:4,  shape:'square'                    },
+  troll:          { label:'Troll',          faction:'barbarian', color:0x336633, size:30, speedMult:0.8, hpMult:4.0,  reward:50,  lives:2, wave:6,  shape:'circle'                    },
+  cyclops:        { label:'CYCLOPS',        faction:'barbarian', color:0xaa2200, size:44, speedMult:0.5, hpMult:9.0,  reward:120, lives:4, wave:8,  shape:'diamond'                   },
+  warchief:       { label:'ORC WARCHIEF',   faction:'barbarian', color:0xcc1100, size:40, speedMult:0.5, hpMult:8.0,  reward:80,  lives:4, wave:5,  shape:'diamond', bossOnly:true    },
+  barbarian_king: { label:'BARBARIAN KING', faction:'barbarian', color:0xff2200, size:52, speedMult:0.38,hpMult:20.0, reward:200, lives:6, wave:10, shape:'diamond', bossOnly:true    },
 
-  // ── Undead Faction (waves 7-12) ────────────────────────────
-  skeleton: { label:'Skeleton', faction:'undead',    color:0xddddcc, size:18, speedMult:1.2, hpMult:0.6,  reward:15, lives:1, wave:7,  shape:'square'  },
-  zombie:   { label:'Zombie',   faction:'undead',    color:0x558855, size:24, speedMult:0.7, hpMult:1.8,  reward:25, lives:1, wave:7,  shape:'square'  },
-  wight:    { label:'Wight',    faction:'undead',    color:0x8899bb, size:22, speedMult:1.3, hpMult:1.5,  reward:30, lives:1, wave:8,  shape:'circle'  },
-  vampire:  { label:'Vampire',  faction:'undead',    color:0x880022, size:24, speedMult:1.7, hpMult:1.8,  reward:38, lives:1, wave:9,  shape:'diamond' },
-  lich:     { label:'Lich',     faction:'undead',    color:0x553388, size:28, speedMult:0.9, hpMult:5.0,  reward:70, lives:2, wave:10, shape:'square'  },
-  bonedragon:{ label:'BONE DRAGON', faction:'undead',color:0xeeeedd, size:46, speedMult:0.6, hpMult:12.0, reward:160,lives:5, wave:12, shape:'diamond' },
+  // ── Undead Faction (waves 11-20) ───────────────────────────
+  skeleton:   { label:'Skeleton',    faction:'undead', color:0xddddcc, size:18, speedMult:1.2, hpMult:0.6,  reward:15,  lives:1, wave:11, shape:'square'                   },
+  zombie:     { label:'Zombie',      faction:'undead', color:0x558855, size:24, speedMult:0.7, hpMult:1.8,  reward:25,  lives:1, wave:11, shape:'square'                   },
+  wight:      { label:'Wight',       faction:'undead', color:0x8899bb, size:22, speedMult:1.3, hpMult:1.5,  reward:30,  lives:1, wave:12, shape:'circle'                   },
+  vampire:    { label:'Vampire',     faction:'undead', color:0x880022, size:24, speedMult:1.7, hpMult:1.8,  reward:38,  lives:1, wave:14, shape:'diamond'                  },
+  lich:       { label:'Lich',        faction:'undead', color:0x553388, size:28, speedMult:0.9, hpMult:5.0,  reward:70,  lives:2, wave:16, shape:'square'                   },
+  bonedragon: { label:'BONE DRAGON', faction:'undead', color:0xeeeedd, size:46, speedMult:0.6, hpMult:12.0, reward:160, lives:5, wave:18, shape:'diamond'                  },
+  lich_lord:  { label:'LICH LORD',   faction:'undead', color:0x4400aa, size:40, speedMult:0.5, hpMult:8.0,  reward:80,  lives:4, wave:15, shape:'diamond', bossOnly:true   },
+  death_lord: { label:'DEATH LORD',  faction:'undead', color:0x0011aa, size:52, speedMult:0.38,hpMult:20.0, reward:200, lives:6, wave:20, shape:'diamond', bossOnly:true   },
 
-  // ── Dark Magic Faction (waves 13-18) ───────────────────────
-  centaur:  { label:'Centaur',  faction:'dark',      color:0xbb6622, size:20, speedMult:1.8, hpMult:0.9,  reward:20, lives:1, wave:13, shape:'square'  },
-  gargoyle: { label:'Gargoyle', faction:'dark',      color:0x777788, size:22, speedMult:1.5, hpMult:1.2,  reward:25, lives:1, wave:13, shape:'diamond' },
-  griffin:  { label:'Griffin',  faction:'dark',      color:0xddaa00, size:26, speedMult:1.4, hpMult:2.0,  reward:35, lives:1, wave:14, shape:'circle'  },
-  minotaur: { label:'Minotaur', faction:'dark',      color:0x553300, size:32, speedMult:0.9, hpMult:4.5,  reward:55, lives:2, wave:15, shape:'square'  },
-  hydra:    { label:'Hydra',    faction:'dark',      color:0x224422, size:36, speedMult:0.7, hpMult:7.0,  reward:90, lives:3, wave:16, shape:'circle'  },
-  blackdragon:{ label:'BLACK DRAGON', faction:'dark',color:0x110011, size:50, speedMult:0.65,hpMult:18.0, reward:250,lives:6, wave:18, shape:'diamond' },
+  // ── Dark Magic Faction (waves 21-30) ───────────────────────
+  centaur:      { label:'Centaur',      faction:'dark', color:0xbb6622, size:20, speedMult:1.8, hpMult:0.9,  reward:20,  lives:1, wave:21, shape:'square'                 },
+  gargoyle:     { label:'Gargoyle',     faction:'dark', color:0x777788, size:22, speedMult:1.5, hpMult:1.2,  reward:25,  lives:1, wave:21, shape:'diamond'                },
+  griffin:      { label:'Griffin',      faction:'dark', color:0xddaa00, size:26, speedMult:1.4, hpMult:2.0,  reward:35,  lives:1, wave:22, shape:'circle'                 },
+  minotaur:     { label:'Minotaur',     faction:'dark', color:0x553300, size:32, speedMult:0.9, hpMult:4.5,  reward:55,  lives:2, wave:24, shape:'square'                 },
+  hydra:        { label:'Hydra',        faction:'dark', color:0x224422, size:36, speedMult:0.7, hpMult:7.0,  reward:90,  lives:3, wave:26, shape:'circle'                 },
+  blackdragon:  { label:'BLACK DRAGON', faction:'dark', color:0x110011, size:50, speedMult:0.65,hpMult:18.0, reward:250, lives:6, wave:28, shape:'diamond'                },
+  shadow_demon: { label:'SHADOW DEMON', faction:'dark', color:0x440033, size:40, speedMult:0.5, hpMult:8.0,  reward:80,  lives:4, wave:25, shape:'diamond', bossOnly:true },
+  demon_lord:   { label:'DEMON LORD',   faction:'dark', color:0x880000, size:52, speedMult:0.38,hpMult:20.0, reward:200, lives:6, wave:30, shape:'diamond', bossOnly:true },
 };
 
 const BASE_SPEED = 80;
@@ -87,31 +126,33 @@ function getFactionForWave(w) {
 
 function buildWaveRoster(wave) {
   const faction = getFactionForWave(wave);
-  // All types belonging to this faction that have unlocked by this wave
+  // Exclude bossOnly enemies — those are appended separately
   const pool = Object.entries(ENEMY_TYPES)
-    .filter(([,d]) => d.faction === faction && d.wave <= wave);
+    .filter(([,d]) => d.faction === faction && d.wave <= wave && !d.bossOnly);
 
   const roster = [];
-  const total = 8 + wave * 2;
+  // Scale enemy count by local wave number so wave 21 feels like wave 1 of its map
+  const factionStart = FACTIONS[faction].waves[0];
+  const localWave = wave - factionStart + 1;
+  const total = 8 + localWave * 2;
 
-  // Always include the faction's hardest available unit once as a mini-boss
-  const hardest = pool[pool.length - 1];
-  if (hardest) roster.push(hardest[0]);
-
-  // Fill the rest: weight toward harder units as wave progresses
-  for (let i = roster.length; i < total; i++) {
-    const weights = pool.map(([,d], idx) => idx + 1); // linear weight
+  // Fill: weight toward harder units as wave progresses
+  for (let i = 0; i < total; i++) {
+    const weights = pool.map((_, idx) => idx + 1);
     const sum = weights.reduce((a,b) => a+b, 0);
     let r = Math.random() * sum;
     let chosen = pool[0][0];
     for (let j = 0; j < weights.length; j++) { r -= weights[j]; if (r <= 0) { chosen = pool[j][0]; break; } }
     roster.push(chosen);
   }
-  // Shuffle so the hardest isn't always first
+  // Shuffle so enemies are mixed
   for (let i = roster.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i+1));
     [roster[i], roster[j]] = [roster[j], roster[i]];
   }
+  // Append boss as the final enemy on boss waves (local wave 5 = mini boss, local wave 10 = final boss)
+  const boss = Object.entries(ENEMY_TYPES).find(([,d]) => d.bossOnly && d.wave === wave);
+  if (boss) roster.push(boss[0]);
   return roster;
 }
 
@@ -317,6 +358,112 @@ function drawEnemySprite(g, type) {
       g.fillTriangle(-4,-24,4,-24,0,-18);
       g.fillStyle(0x440000); g.fillRect(-14,-6,4,14); g.fillRect(11,-6,4,14); // legs
       break;
+
+    // ── MINI BOSSES ────────────────────────────────────────────
+    case 'warchief':
+      g.fillStyle(0x885500); g.fillRect(-20,-28,40,20);     // iron helmet
+      g.fillStyle(0x664400); g.fillRect(-22,-20,44,6);      // helmet brim
+      g.fillStyle(0x885500); // ram horns
+      g.fillTriangle(-22,-22,-34,-38,-12,-18);
+      g.fillTriangle(22,-22,34,-38,12,-18);
+      g.fillStyle(c);        g.fillRect(-18,-14,36,30);     // face
+      g.fillStyle(dc);       g.fillRect(-18,-14,36,10);     // brow ridge
+      g.fillStyle(0xffaa00); g.fillRect(-10,-7,7,6); g.fillRect(4,-7,7,6); // eyes
+      g.fillStyle(0x000000); g.fillRect(-9,-6,4,4); g.fillRect(5,-6,4,4);
+      g.fillStyle(0xddbb88); g.fillRect(-6,8,3,10); g.fillRect(4,8,3,10);  // tusks
+      g.fillStyle(dc);       g.fillRect(-18,16,36,3);       // chin
+      break;
+
+    case 'barbarian_king':
+      g.fillStyle(0xffd700); // crown
+      g.fillRect(-22,-44,44,12);
+      g.fillTriangle(-18,-44,-14,-60,-10,-44);
+      g.fillTriangle(-2,-44,0,-64,2,-44);
+      g.fillTriangle(10,-44,14,-60,18,-44);
+      g.fillStyle(0x880000); g.fillRect(-22,-32,44,54);     // armored body
+      g.fillStyle(0x550000); g.fillRect(-22,-32,44,14);     // pauldrons
+      g.fillStyle(0xffaa00); g.fillRect(-11,-22,8,7); g.fillRect(4,-22,8,7); // eyes
+      g.fillStyle(0x000000); g.fillRect(-10,-21,5,5); g.fillRect(5,-21,5,5);
+      g.fillStyle(0xff0000); g.fillRect(-8,-6,16,5);        // snarl
+      g.fillStyle(0xddbb88); g.fillRect(-7,0,4,14); g.fillRect(4,0,4,14);   // tusks
+      g.fillStyle(0x777777); g.fillRect(24,-36,7,54);       // axe haft
+      g.fillStyle(0xcccccc); // axe blade
+      g.fillTriangle(24,-36,44,-22,24,-10);
+      g.fillTriangle(24,-36,42,-30,24,-20);
+      break;
+
+    case 'lich_lord':
+      g.fillStyle(0x220033); g.fillRect(-16,-22,32,44);     // robe
+      g.fillStyle(0xddddcc); g.fillCircle(0,-30,14);        // skull
+      g.fillStyle(0x000000); g.fillCircle(-6,-32,5); g.fillCircle(6,-32,5); // sockets
+      g.fillStyle(0x8800ff); g.fillCircle(-6,-32,3); g.fillCircle(6,-32,3); // glowing eyes
+      g.fillStyle(0x880088); // skull crown
+      g.fillRect(-14,-44,28,8);
+      g.fillTriangle(-12,-44,-8,-56,-4,-44);
+      g.fillTriangle(4,-44,8,-56,12,-44);
+      g.fillStyle(0x664488); g.fillRect(20,-2,4,28);        // staff
+      g.fillStyle(0xaa00ff); g.fillCircle(22,-6,7);         // orb
+      g.fillStyle(0xff88ff); g.fillCircle(22,-6,3);         // orb core
+      g.fillStyle(c); // bony hands
+      g.fillRect(-22,4,6,8); g.fillRect(16,4,6,8);
+      break;
+
+    case 'death_lord':
+      g.fillStyle(0x111133); g.fillRect(-24,-28,48,54);     // dark armor
+      g.fillStyle(0x000022); g.fillRect(-24,-28,48,16);     // shoulder plates
+      g.fillStyle(0x888899); g.fillCircle(0,-38,16);        // skull helm
+      g.fillStyle(0x000000); g.fillCircle(-7,-40,6); g.fillCircle(7,-40,6);
+      g.fillStyle(0x0044ff); g.fillCircle(-7,-40,3); g.fillCircle(7,-40,3); // blue eyes
+      g.fillStyle(0x666677); // three horns
+      g.fillTriangle(-14,-54,-18,-74,-6,-54);
+      g.fillTriangle(-1,-54,0,-78,1,-54);
+      g.fillTriangle(6,-54,18,-74,14,-54);
+      g.fillStyle(0x000033); // dark cloak panels
+      g.fillTriangle(-24,26,-38,60,-24,26);
+      g.fillTriangle(24,26,38,60,24,26);
+      g.fillStyle(0x888899); // skeletal fists
+      g.fillRect(-36,-10,12,8); g.fillRect(24,-10,12,8);
+      break;
+
+    case 'shadow_demon':
+      g.fillStyle(0x220011); g.fillCircle(0,0,22);          // shadow aura
+      g.fillStyle(c);        g.fillRect(-14,-20,28,38);     // body
+      g.fillStyle(0x660044); // curved horns
+      g.fillTriangle(-10,-20,-18,-40,-2,-20);
+      g.fillTriangle(10,-20,18,-40,2,-20);
+      g.fillStyle(0xff00ff); g.fillCircle(-6,-10,5); g.fillCircle(6,-10,5); // eyes
+      g.fillStyle(0xffffff); g.fillCircle(-6,-10,2); g.fillCircle(6,-10,2);
+      g.fillStyle(0x330022); // large wings
+      g.fillTriangle(-14,-8,-40,-28,-14,20);
+      g.fillTriangle(-14,-8,-38,-6,-14,20);
+      g.fillTriangle(14,-8,40,-28,14,20);
+      g.fillTriangle(14,-8,38,-6,14,20);
+      g.fillStyle(0x660044); // claws
+      g.fillTriangle(-20,12,-30,4,-16,22);
+      g.fillTriangle(20,12,30,4,16,22);
+      break;
+
+    case 'demon_lord':
+      g.fillStyle(0x550000); g.fillRect(-26,-24,52,50);     // massive body
+      g.fillStyle(0x440000); // enormous wings
+      g.fillTriangle(-26,-12,-62,-52,-26,26);
+      g.fillTriangle(-26,-12,-54,-6,-26,26);
+      g.fillTriangle(26,-12,62,-52,26,26);
+      g.fillTriangle(26,-12,54,-6,26,26);
+      g.fillStyle(0x330000); // wing membranes
+      g.fillTriangle(-26,-12,-58,-44,-26,12);
+      g.fillTriangle(26,-12,58,-44,26,12);
+      g.fillStyle(0xbb2200); g.fillRect(-18,-44,36,20);     // skull face
+      g.fillStyle(0xff0000); g.fillCircle(-8,-36,8); g.fillCircle(8,-36,8); // eyes
+      g.fillStyle(0xff4400); g.fillCircle(-8,-36,5); g.fillCircle(8,-36,5);
+      g.fillStyle(0xffd700); g.fillCircle(-8,-36,2); g.fillCircle(8,-36,2); // gold pupils
+      g.fillStyle(0xff2200); // crown of horns
+      g.fillTriangle(-14,-44,-18,-64,-6,-44);
+      g.fillTriangle(-2,-44,0,-68,2,-44);
+      g.fillTriangle(6,-44,18,-64,14,-44);
+      g.fillStyle(0x440000); // tail
+      g.fillRect(-4,26,8,18); g.fillTriangle(-10,44,10,44,0,58);
+      break;
   }
 }
 
@@ -333,8 +480,8 @@ class Enemy {
     this.reward = def.reward;
     this.liveDmg = def.lives;
     this.alive = true; this.reached = false;
-    this.x = PATH_WAYPOINTS[0].x;
-    this.y = PATH_WAYPOINTS[0].y;
+    this.x = currentPath[0].x;
+    this.y = currentPath[0].y;
 
     // Container holds all sprite graphics and moves as one unit
     const g = scene.add.graphics();
@@ -359,14 +506,14 @@ class Enemy {
 
   update(delta) {
     if (!this.alive || this.reached) return;
-    const target = PATH_WAYPOINTS[this.waypointIndex];
+    const target = currentPath[this.waypointIndex];
     const dx = target.x - this.x, dy = target.y - this.y;
     const dist = Math.sqrt(dx*dx + dy*dy);
     const step = this.speed * (delta / 1000);
     if (dist <= step) {
       this.x = target.x; this.y = target.y;
       this.waypointIndex++;
-      if (this.waypointIndex >= PATH_WAYPOINTS.length) { this.reached = true; this.destroy(); return; }
+      if (this.waypointIndex >= currentPath.length) { this.reached = true; this.destroy(); return; }
     } else {
       this.x += (dx/dist)*step; this.y += (dy/dist)*step;
     }
@@ -998,7 +1145,8 @@ let castleHPText = null;   // text label
 let castleNameText = null; // e.g. "Castle" / "Stronghold"
 
 function castleEnemyDamage(size) {
-  if (size >= 44) return 6;   // bosses
+  if (size >= 52) return 10;  // final bosses — devastating hit
+  if (size >= 44) return 6;   // mini bosses / big enemies
   if (size >= 30) return 3;   // large
   if (size >= 18) return 2;   // medium
   return 1;                   // small
@@ -1012,8 +1160,8 @@ function clearCastleGfx() {
 function drawCastle(scene, factionKey) {
   clearCastleGfx();
   const lvl = CASTLE_LEVELS[castleLevel];
-  // Castle sits at the right edge, centred on path end y=440
-  const pathEndY = 440;
+  // Castle sits at the right edge, centred on the path's end point
+  const pathEndY = currentPath[currentPath.length - 1].y;
   const cellW = CELL * lvl.cols, cellH = CELL * lvl.rows;
   const cx = 800 - cellW / 2 - 4;   // right-aligned with 4px margin
   const cy = pathEndY;
@@ -1536,7 +1684,7 @@ function create() {
   muteBtn.on('pointerdown', () => { const m = SFX.toggleMute(); muteBtn.setText(m ? '🔇' : '🔊'); });
   interestText = this.add.text(400, 530, '',                           { fontSize: '13px', color: '#aaffaa', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(10);
   statusText   = this.add.text(400, 290, '',                           { fontSize: '20px', color: '#ffd700', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5).setDepth(10);
-  factionText  = this.add.text(400, HUD_H + 12, 'Barbarian Horde',   { fontSize: '13px', fontFamily: 'Arial Black', color: '#cc3300', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5, 0).setDepth(10);
+  factionText  = this.add.text(790, 44, 'Desert Wastes', { fontSize: '9px', fontFamily: 'monospace', color: '#cc3300' }).setOrigin(1, 0).setDepth(10).setAlpha(0.55);
 
   // ── Upgrade panel (hidden by default) ──
   upgradePanel = new UpgradePanel(this);
@@ -1564,20 +1712,20 @@ const MAP_THEMES = {
     skyColor:  0xe8c870,   // warm haze sky strip
   },
   undead: {
-    bgColor:   0x1a2810,   // dark green-black forest floor
-    gridColor: 0x223318,
+    bgColor:   0x0f1a08,   // very dark haunted forest floor
+    gridColor: 0x1a2810,
     gridAlpha: 0.3,
     pathFill:  0x2a1808,   // dark dirt path
     pathEdge:  0x4a3020,
-    skyColor:  0x0d1a08,
+    skyColor:  0x0a1205,
   },
   dark: {
-    bgColor:   0x2d4a1e,   // lighter forest green
-    gridColor: 0x3a6128,
-    gridAlpha: 0.25,
-    pathFill:  0x3d2a10,
-    pathEdge:  0x6a4a22,
-    skyColor:  0x1a3010,
+    bgColor:   0x2a0800,   // dark volcanic ground
+    gridColor: 0x4a1800,
+    gridAlpha: 0.3,
+    pathFill:  0x5a1800,   // dark lava-rock path
+    pathEdge:  0xaa2200,   // lava glow edge
+    skyColor:  0x440a00,
   },
 };
 
@@ -1588,6 +1736,9 @@ function clearMapGraphics() {
 
 function drawMap(scene, factionKey) {
   clearMapGraphics();
+  // Update current path and rebuild blocked cells for new layout
+  currentPath = MAP_PATHS[factionKey] || MAP_PATHS.barbarian;
+  buildPathCells(currentPath);
   const theme = MAP_THEMES[factionKey] || MAP_THEMES.barbarian;
   const GAME_H = 530; // playfield height (above shop bar)
 
@@ -1723,18 +1874,19 @@ function drawMap(scene, factionKey) {
   mapGraphicsGroup.push(pg);
   pg.lineStyle(36, theme.pathFill, 0.75);
   pg.beginPath();
-  pg.moveTo(PATH_WAYPOINTS[0].x, PATH_WAYPOINTS[0].y);
-  PATH_WAYPOINTS.slice(1).forEach(p => pg.lineTo(p.x, p.y));
+  pg.moveTo(currentPath[0].x, currentPath[0].y);
+  currentPath.slice(1).forEach(p => pg.lineTo(p.x, p.y));
   pg.strokePath();
   pg.lineStyle(2, theme.pathEdge, 0.9);
   pg.beginPath();
-  pg.moveTo(PATH_WAYPOINTS[0].x, PATH_WAYPOINTS[0].y);
-  PATH_WAYPOINTS.slice(1).forEach(p => pg.lineTo(p.x, p.y));
+  pg.moveTo(currentPath[0].x, currentPath[0].y);
+  currentPath.slice(1).forEach(p => pg.lineTo(p.x, p.y));
   pg.strokePath();
 
-  // ── Start/End markers ──
-  const mS = scene.add.circle(20, PATH_WAYPOINTS[0].y, 12, 0x00cc44).setDepth(4);
-  const mSt = scene.add.text(20, PATH_WAYPOINTS[0].y, 'S', { fontSize: '10px', color: '#fff' }).setOrigin(0.5).setDepth(4);
+  // ── Start marker ──
+  const startPt = currentPath[0];
+  const mS = scene.add.circle(startPt.x === 0 ? 20 : startPt.x, startPt.y, 12, 0x00cc44).setDepth(4);
+  const mSt = scene.add.text(startPt.x === 0 ? 20 : startPt.x, startPt.y, 'S', { fontSize: '10px', color: '#fff' }).setOrigin(0.5).setDepth(4);
   mapGraphicsGroup.push(mS, mSt);
 
   // Draw the castle at the path end
@@ -1826,14 +1978,25 @@ function update(time, delta) {
     const prevFaction = getFactionForWave(prevWave);
     const nextFaction = getFactionForWave(wave);
     if (nextFaction !== prevFaction) {
+      // Refund all tower gold (100%) and clear for new map layout
+      let refund = 0;
+      for (const t of towers) { refund += TOWER_TYPES[t.type].cost; t.destroy(); }
+      towers = [];
+      placedCells = new Set();
+      if (refund > 0) { gold += refund; goldText.setText('💰 Gold: ' + gold); }
+      // Castle resets for new map
       castleLevel = 0;
       castleMaxHP = CASTLE_LEVELS[0].maxHP;
       castleHP = castleMaxHP;
       lives = castleHP;
-      drawMap(scene_ref, nextFaction);
+      drawMap(scene_ref, nextFaction); // also updates currentPath + PATH_CELLS
+      if (factionText) {
+        const nf = FACTIONS[nextFaction];
+        factionText.setText(nf.name).setColor(nf.color);
+      }
     }
     const factionMsg = nextFaction !== prevFaction
-      ? `⚔️ NEW THREAT: ${FACTIONS[nextFaction].name}!`
+      ? `⚔️ ${FACTIONS[nextFaction].name} — new path, towers refunded!`
       : '';
 
     // Announce newly unlocked towers
