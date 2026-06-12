@@ -1345,10 +1345,13 @@ function showCastlePanel(scene) {
 
   castlePanel = { destroy() { [bg, title, hpTxt, close, upgradeBtn, upgradeTxt].forEach(o => o && o.destroy()); castlePanel = null; } };
 }
-let selectedTowerType = 'arrow';
+let selectedTowerType = null;
 let selectedTower = null;
 let movingTower = null;
 let draggingTower = null;   // tower being freely dragged (pre-wave)
+let ghostGfx = null;        // hover preview ghost
+let ghostRing = null;
+let ghostIcon = null;
 let dragStartX = 0, dragStartY = 0; // pointer position at drag start
 const MOVE_COST = 50;       // gold cost to move a tower after wave 1 has started
 let interestTimer = 0;
@@ -1369,7 +1372,7 @@ function refreshShop() {
     entry.descTxt.setColor(locked ? '#444444' : '#aaaaaa');
     entry.lockTxt.setText(locked ? `🔒 Unlocks\nafter Wave ${def.unlockWave}` : '');
     // If selected tower just unlocked, keep selection; if locked, switch to arrow
-    if (locked && selectedTowerType === key) selectedTowerType = 'arrow';
+    if (locked && selectedTowerType === key) selectedTowerType = null;
   }
 }
 
@@ -1608,6 +1611,7 @@ function create() {
 
     // Place new tower on empty valid cell
     if (PATH_CELLS.has(key)) return;
+    if (!selectedTowerType) return;   // nothing selected — require explicit shop pick
     const def = TOWER_TYPES[selectedTowerType];
     if (gold < def.cost) {
       statusText.setText('Not enough gold!');
@@ -1619,17 +1623,23 @@ function create() {
     goldText.setText('💰 Gold: ' + gold);
     placedCells.add(key);
     towers.push(new Tower(this, cx, cy, selectedTowerType));
+    deselectShop();   // clear selection — player must pick again to place another
     SFX.play('place_tower');
   });
 
-  // ── Input: pointer move (drag) ────────────────────────────────
+  // ── Input: pointer move (drag + ghost preview) ───────────────
   this.input.on('pointermove', (ptr) => {
-    if (!draggingTower) return;
-    // Only drag if moved more than 4px (prevents accidental drags)
-    const dx = ptr.x - dragStartX, dy = ptr.y - dragStartY;
-    if (Math.sqrt(dx*dx + dy*dy) < 4) return;
-    draggingTower.moveTo(ptr.x, ptr.y);
-    draggingTower.rangeRing.setAlpha(0.5);
+    if (draggingTower) {
+      clearGhost();
+      const dx = ptr.x - dragStartX, dy = ptr.y - dragStartY;
+      if (Math.sqrt(dx*dx + dy*dy) < 4) return;
+      draggingTower.moveTo(ptr.x, ptr.y);
+      draggingTower.rangeRing.setAlpha(0.5);
+      return;
+    }
+    // Ghost preview: show where the selected tower type would land
+    if (ptr.y < HUD_H || ptr.y > 520 || waveActive) { clearGhost(); return; }
+    drawGhostAt(ptr.x, ptr.y);
   });
 
   // ── Input: pointer up (drop) ─────────────────────────────────
@@ -1689,6 +1699,13 @@ function create() {
   // ── Upgrade panel (hidden by default) ──
   upgradePanel = new UpgradePanel(this);
 
+  // ── Ghost preview objects ──
+  ghostGfx  = this.add.graphics().setDepth(8).setAlpha(0.55);
+  ghostRing = this.add.graphics().setDepth(8).setAlpha(0.3);
+  ghostIcon = this.add.text(0, 0, '', { fontSize: '18px' }).setOrigin(0.5).setDepth(9).setAlpha(0.6).setVisible(false);
+
+  // Clear ghost whenever the pointer leaves the canvas
+  this.input.on('pointerout', () => clearGhost());
 
   // Start Wave button
   const btn = this.add.rectangle(690, HUD_H/2, 150, 28, 0xffd700).setDepth(10).setInteractive();
@@ -1697,6 +1714,58 @@ function create() {
   btn.on('pointerout',  () => btn.setFillStyle(0xffd700));
   btn.on('pointerdown', () => startWaveWithCountdown(this));
   this._waveBtn = btn; this._waveBtnText = btnText;
+}
+
+function clearGhost() {
+  if (ghostGfx)  ghostGfx.clear();
+  if (ghostRing) ghostRing.clear();
+  if (ghostIcon) ghostIcon.setVisible(false);
+}
+
+function deselectShop() {
+  selectedTowerType = null;
+  clearGhost();
+  if (scene_ref && scene_ref._shopBtns) {
+    for (const [k, entry] of Object.entries(scene_ref._shopBtns)) {
+      const locked = TOWER_TYPES[k].unlockWave >= wave;
+      entry.bg.setStrokeStyle(2, locked ? 0x333333 : 0x444466);
+    }
+  }
+}
+
+function drawGhostAt(px, py) {
+  if (!ghostGfx || !selectedTowerType) { clearGhost(); return; }
+  const def = TOWER_TYPES[selectedTowerType];
+  if (!def) { clearGhost(); return; }
+
+  const cx = Math.floor(px / CELL);
+  const cy = Math.floor(py / CELL);
+  const key = `${cx},${cy}`;
+  const cellX = cx * CELL + CELL / 2;
+  const cellY = cy * CELL + CELL / 2;
+
+  const onPath    = PATH_CELLS.has(key);
+  const occupied  = placedCells.has(key);
+  const canAfford = gold >= def.cost;
+  const valid = !onPath && !occupied && canAfford;
+  const invalid = onPath || occupied;
+
+  // Cell highlight
+  ghostGfx.clear();
+  ghostGfx.fillStyle(invalid ? 0xff2200 : (canAfford ? 0x44ff88 : 0xffaa00), 1);
+  ghostGfx.fillRect(cx * CELL + 2, cy * CELL + 2, CELL - 4, CELL - 4);
+  ghostGfx.lineStyle(2, invalid ? 0xff4400 : (canAfford ? 0x00ff66 : 0xffcc00), 1);
+  ghostGfx.strokeRect(cx * CELL + 2, cy * CELL + 2, CELL - 4, CELL - 4);
+
+  // Range ring (only when valid and can afford)
+  ghostRing.clear();
+  if (!invalid && canAfford && def.range > 0) {
+    ghostRing.lineStyle(1, 0xffffff, 1);
+    ghostRing.strokeCircle(cellX, cellY, def.range);
+  }
+
+  // Icon
+  ghostIcon.setText(def.icon || '').setPosition(cellX, cellY).setVisible(true);
 }
 
 // Holds graphics objects for the current map so they can be destroyed on transition
