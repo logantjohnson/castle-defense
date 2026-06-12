@@ -599,23 +599,20 @@ function getTotalMineBonus() {
 }
 
 function globalUpgradeTier() {
-  // Returns the highest tier T such that every placed tower has every stat >= T
-  if (towers.length === 0) return 0;
+  // Returns min per-stat level across all non-mine towers (drives dragon color)
+  const nonMines = towers.filter(t => !t.isMine);
+  if (!nonMines.length) return 0;
   let min = MAX_UPGRADE;
-  for (const t of towers) {
-    min = Math.min(min, t.dmgLevel, t.rangeLevel, t.rateLevel);
-  }
+  for (const t of nonMines) min = Math.min(min, t.dmgLevel, t.rangeLevel, t.rateLevel);
   return min;
 }
 
-function canUpgradeTo(targetLevel) {
-  // Upgrading a stat from (targetLevel-1) to targetLevel requires all towers at >= (targetLevel-1)
-  if (targetLevel <= 1) return true; // first upgrade always allowed
-  const required = targetLevel - 1;
-  for (const t of towers) {
-    if (t.dmgLevel < required || t.rangeLevel < required || t.rateLevel < required) return false;
-  }
-  return true;
+function totalUpgradesAllowed() {
+  // A tower's total upgrades (dmg+range+rate) can't exceed the global minimum + 1.
+  // This forces "bring every tower to N stars before any tower reaches N+1 stars."
+  const nonMines = towers.filter(t => !t.isMine);
+  if (!nonMines.length) return MAX_UPGRADE * 3;
+  return Math.min(...nonMines.map(t => t.dmgLevel + t.rangeLevel + t.rateLevel)) + 1;
 }
 
 function refreshAllDragons() {
@@ -836,6 +833,11 @@ class Tower {
     const key = stat + 'Level';
     const level = this[key];
     if (level >= MAX_UPGRADE) return false;
+    // Tier gate: total upgrades on this tower can't exceed global min + 1
+    if (!this.isMine) {
+      const currentTotal = this.dmgLevel + this.rangeLevel + this.rateLevel;
+      if (currentTotal >= totalUpgradesAllowed()) return false;
+    }
     const cost = this.upgradeCost(level);
     if (gold < cost) return false;
     gold -= cost;
@@ -1081,12 +1083,17 @@ class UpgradePanel {
         { level: t.rangeLevel, stat: 'range' },
         { level: t.rateLevel,  stat: 'rate' },
       ];
+      const currentTotal = t.dmgLevel + t.rangeLevel + t.rateLevel;
+      const tierLocked = currentTotal >= totalUpgradesAllowed();
       this.rows.forEach((row, i) => {
         const lvl  = stats[i].level;
         row.lvl.setText('★'.repeat(lvl) + '☆'.repeat(MAX_UPGRADE - lvl));
         if (lvl >= MAX_UPGRADE) {
           row.btn.setFillStyle(0x444444).removeInteractive();
           row.bTxt.setText('MAX').setColor('#888888');
+        } else if (tierLocked) {
+          row.btn.setFillStyle(0x885500).removeInteractive();
+          row.bTxt.setText('TIER').setColor('#ffaa44');
         } else {
           const cost = t.upgradeCost(lvl);
           row.btn.setFillStyle(gold >= cost ? 0x226622 : 0x662222).setInteractive();
@@ -1686,7 +1693,7 @@ function create() {
   castleHPBar = this.add.rectangle(14 + 60 + 2, HUD_H/2 + 6, 120, 10, 0x44dd44).setOrigin(0, 0.5).setDepth(11);
   castleHPText = this.add.text(14 + 60 + 66, HUD_H/2 + 6, '20/20', { fontSize: '9px', color: '#ffffff' }).setOrigin(0.5, 0.5).setDepth(12);
   livesText = { setText: () => {} }; // stub so old refs don't crash
-  goldText     = this.add.text(100, HUD_H/2, '💰 Gold: 150', { fontSize: '15px', color: '#ffd700' }).setOrigin(0, 0.5).setDepth(10);
+  goldText     = this.add.text(218, HUD_H/2, '💰 Gold: 150', { fontSize: '15px', color: '#ffd700' }).setOrigin(0, 0.5).setDepth(10);
   waveText     = this.add.text(400, HUD_H/2, 'Wave: 1',      { fontSize: '15px', color: '#ffffff' }).setOrigin(0.5, 0.5).setDepth(10);
   const bestWave = parseInt(localStorage.getItem('td_best_wave') || '0');
   if (bestWave > 0) this.add.text(510, HUD_H/2, `🏆 Best: ${bestWave}`, { fontSize: '13px', color: '#ffdd00' }).setOrigin(0, 0.5).setDepth(10);
@@ -1720,6 +1727,31 @@ function clearGhost() {
   if (ghostGfx)  ghostGfx.clear();
   if (ghostRing) ghostRing.clear();
   if (ghostIcon) ghostIcon.setVisible(false);
+}
+
+function showMapComplete(scene, fromFaction, toFaction) {
+  const from = FACTIONS[fromFaction];
+  const to   = FACTIONS[toFaction];
+  const overlay = scene.add.rectangle(400, 283, 800, 566, 0x000000, 0.82).setDepth(60);
+  const title = scene.add.text(400, 220, '⚔️  MAP COMPLETE!', {
+    fontSize: '52px', fontFamily: 'Arial Black', color: '#ffd700',
+    stroke: '#000', strokeThickness: 8
+  }).setOrigin(0.5).setDepth(61);
+  const sub = scene.add.text(400, 295, from.name + ' defeated!', {
+    fontSize: '26px', color: from.color, stroke: '#000', strokeThickness: 5
+  }).setOrigin(0.5).setDepth(61);
+  const next = scene.add.text(400, 345, '→  Entering: ' + to.name, {
+    fontSize: '22px', color: '#aaffaa', stroke: '#000', strokeThickness: 4
+  }).setOrigin(0.5).setDepth(61);
+  const hint = scene.add.text(400, 410, 'Towers refunded — rebuild your defenses!', {
+    fontSize: '15px', color: '#aaaaaa', stroke: '#000', strokeThickness: 3
+  }).setOrigin(0.5).setDepth(61);
+  const dismiss = () => {
+    overlay.destroy(); title.destroy(); sub.destroy(); next.destroy(); hint.destroy();
+  };
+  overlay.setInteractive();
+  overlay.on('pointerdown', dismiss);
+  scene.time.delayedCall(4000, dismiss);
 }
 
 function deselectShop() {
@@ -2063,6 +2095,7 @@ function update(time, delta) {
         const nf = FACTIONS[nextFaction];
         factionText.setText(nf.name).setColor(nf.color);
       }
+      showMapComplete(scene_ref, prevFaction, nextFaction);
     }
     const factionMsg = nextFaction !== prevFaction
       ? `⚔️ ${FACTIONS[nextFaction].name} — new path, towers refunded!`
