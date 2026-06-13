@@ -1754,7 +1754,9 @@ function create() {
     if (factionText) { const nf = FACTIONS[nextFaction]; factionText.setText(nf.name).setColor(nf.color); }
     if (landText) { const nf = FACTIONS[nextFaction]; landText.setText(nf.name).setColor(nf.color); }
     refreshShop();
-    showMapComplete(this, prevFaction, nextFaction);
+    statusText.setText('');
+    this._waveBtn.setFillStyle(0xffd700).setInteractive();
+    this._waveBtnText.setText('Start Wave');
   });
 
   // Start Wave button
@@ -1772,29 +1774,79 @@ function clearGhost() {
   if (ghostIcon) ghostIcon.setVisible(false);
 }
 
-function showMapComplete(scene, fromFaction, toFaction) {
+function showLandComplete(scene, fromFaction, toFaction) {
   const from = FACTIONS[fromFaction];
-  const to   = FACTIONS[toFaction];
-  const overlay = scene.add.rectangle(400, 283, 800, 566, 0x000000, 0.82).setDepth(60);
-  const title = scene.add.text(400, 220, '⚔️  MAP COMPLETE!', {
-    fontSize: '52px', fontFamily: 'Arial Black', color: '#ffd700',
+  const to   = toFaction ? FACTIONS[toFaction] : null;
+  const objs = [];
+  const track = o => { objs.push(o); return o; };
+
+  track(scene.add.rectangle(400, 283, 800, 566, 0x000000, 0.90).setDepth(60).setInteractive());
+
+  const titleTxt = to ? '🏰  Castle Defended!' : '👑  Realm Saved!';
+  track(scene.add.text(400, 160, titleTxt, {
+    fontSize: '48px', fontFamily: 'Arial Black', color: '#ffd700',
     stroke: '#000', strokeThickness: 8
-  }).setOrigin(0.5).setDepth(61);
-  const sub = scene.add.text(400, 295, from.name + ' defeated!', {
-    fontSize: '26px', color: from.color, stroke: '#000', strokeThickness: 5
-  }).setOrigin(0.5).setDepth(61);
-  const next = scene.add.text(400, 345, '→  Entering: ' + to.name, {
-    fontSize: '22px', color: '#aaffaa', stroke: '#000', strokeThickness: 4
-  }).setOrigin(0.5).setDepth(61);
-  const hint = scene.add.text(400, 410, 'Towers refunded — rebuild your defenses!', {
-    fontSize: '15px', color: '#aaaaaa', stroke: '#000', strokeThickness: 3
-  }).setOrigin(0.5).setDepth(61);
-  const dismiss = () => {
-    overlay.destroy(); title.destroy(); sub.destroy(); next.destroy(); hint.destroy();
-  };
-  overlay.setInteractive();
-  overlay.on('pointerdown', dismiss);
-  scene.time.delayedCall(4000, dismiss);
+  }).setOrigin(0.5).setDepth(61));
+
+  track(scene.add.text(400, 248, `You saved the castle from the ${from.name}!`, {
+    fontSize: '22px', color: from.color, stroke: '#000', strokeThickness: 4
+  }).setOrigin(0.5).setDepth(61));
+
+  if (to) {
+    track(scene.add.text(400, 300, `But a new threat stirs in the ${to.name}...`, {
+      fontSize: '17px', color: '#aaaaaa', stroke: '#000', strokeThickness: 3
+    }).setOrigin(0.5).setDepth(61));
+    track(scene.add.text(400, 334, 'Your towers will be dismantled. Start fresh with 150 gold.', {
+      fontSize: '13px', color: '#888888', stroke: '#000', strokeThickness: 2
+    }).setOrigin(0.5).setDepth(61));
+  } else {
+    track(scene.add.text(400, 300, 'All three lands are free. The realm is at peace!', {
+      fontSize: '18px', color: '#aaffaa', stroke: '#000', strokeThickness: 3
+    }).setOrigin(0.5).setDepth(61));
+  }
+
+  const btnLabel = to ? `March to the ${to.name}  →` : '🏆  Play Again';
+  const btn = track(scene.add.rectangle(400, 408, 310, 54, 0x225522).setDepth(61).setInteractive());
+  track(scene.add.text(400, 408, btnLabel, {
+    fontSize: '20px', fontFamily: 'Arial Black', color: '#aaffaa',
+    stroke: '#000', strokeThickness: 4
+  }).setOrigin(0.5).setDepth(62));
+  btn.on('pointerover', () => btn.setFillStyle(0x338833));
+  btn.on('pointerout',  () => btn.setFillStyle(0x225522));
+
+  btn.on('pointerdown', () => {
+    objs.forEach(o => o.destroy());
+
+    if (to) {
+      // Transition to next land
+      for (const t of towers) t.destroy();
+      towers = []; placedCells = new Set();
+      gold = 150; goldText.setText('💰 Gold: ' + gold);
+      castleLevel = 0; castleMaxHP = CASTLE_LEVELS[0].maxHP;
+      castleHP = castleMaxHP; lives = castleHP;
+      drawMap(scene, toFaction);
+      if (factionText) factionText.setText(to.name).setColor(to.color);
+      if (landText)    landText.setText(to.name).setColor(to.color);
+      waveText.setText('Wave: ' + localWave());
+      refreshShop();
+      statusText.setText('');
+      scene._waveBtn.setFillStyle(0xffd700).setInteractive();
+      scene._waveBtnText.setText('Start Wave');
+      scene._waveBtn.on('pointerover', () => scene._waveBtn.setFillStyle(0xffec6e));
+      scene._waveBtn.on('pointerout',  () => scene._waveBtn.setFillStyle(0xffd700));
+      scene._waveBtn.on('pointerdown', () => startWaveWithCountdown(scene));
+    } else {
+      // Final victory — restart from the beginning
+      restartFaction = 'barbarian';
+      for (const t of towers) t.destroy();
+      for (const e of enemies) e.destroy();
+      enemies = []; towers = []; projectiles = []; placedCells = new Set(); waveRoster = [];
+      wave = 1; gold = 150; waveActive = false;
+      spawnCount = 0; spawnTimer = 0; waveSize = 8;
+      castleLevel = 0; castleHP = CASTLE_LEVELS[0].maxHP; castleMaxHP = CASTLE_LEVELS[0].maxHP;
+      scene.scene.restart();
+    }
+  });
 }
 
 function deselectShop() {
@@ -2117,40 +2169,27 @@ function update(time, delta) {
     wave++; waveSize += 3;
     waveText.setText('Wave: ' + localWave());
     refreshShop();
+    SFX.play('wave_complete');
 
-    // Detect faction change
+    // Detect faction change (end of a land)
     const prevFaction = getFactionForWave(prevWave);
     const nextFaction = getFactionForWave(wave);
-    if (nextFaction !== prevFaction) {
-      // Clear towers and reset gold to 150 for fresh start on new land
-      for (const t of towers) t.destroy();
-      towers = [];
-      placedCells = new Set();
-      gold = 150; goldText.setText('💰 Gold: ' + gold);
-      // Castle resets for new map
-      castleLevel = 0;
-      castleMaxHP = CASTLE_LEVELS[0].maxHP;
-      castleHP = castleMaxHP;
-      lives = castleHP;
-      drawMap(scene_ref, nextFaction); // also updates currentPath + PATH_CELLS
-      if (factionText) {
-        const nf = FACTIONS[nextFaction];
-        factionText.setText(nf.name).setColor(nf.color);
-      }
-      if (landText) { const nf = FACTIONS[nextFaction]; landText.setText(nf.name).setColor(nf.color); }
-      showMapComplete(scene_ref, prevFaction, nextFaction);
-    }
-    const factionMsg = nextFaction !== prevFaction
-      ? `⚔️ ${FACTIONS[nextFaction].name} — new path, towers refunded!`
-      : '';
+    const factionKeys = Object.keys(FACTIONS);
+    const isLastLand  = prevFaction === factionKeys[factionKeys.length - 1];
+    const isLandEnd   = prevWave === FACTIONS[prevFaction].waves[1];
 
-    // Announce newly unlocked towers
+    if (isLandEnd) {
+      // Disable wave button until player clicks through the overlay
+      this._waveBtn.removeInteractive();
+      this._waveBtnText.setText('...');
+      showLandComplete(scene_ref, prevFaction, isLastLand ? null : nextFaction);
+      return;
+    }
+
+    // Normal wave complete
     const justUnlocked = Object.entries(TOWER_TYPES).filter(([,d]) => d.unlockWave === prevWave);
     const unlockMsg = justUnlocked.length ? ' 🔓 ' + justUnlocked.map(([,d]) => d.label).join(' & ') + ' unlocked!' : '';
-
-    const msg = factionMsg || ('Wave Complete!' + unlockMsg + ' Interest keeps earning — save up!');
-    statusText.setText(msg);
-    SFX.play('wave_complete');
+    statusText.setText('Wave Complete!' + unlockMsg);
     if (justUnlocked.length) SFX.play('unlock');
     this._waveBtn.setFillStyle(0xffd700).setInteractive();
     this._waveBtnText.setText('Start Wave');
