@@ -76,9 +76,9 @@ const TOWER_TYPES = {
 
 // ── Enemy factions & types ────────────────────────────────────
 const FACTIONS = {
-  barbarian: { name: 'Desert Wastes',   color: '#cc3300', waves: [1,10]  },
-  undead:    { name: 'Haunted Forest',  color: '#44aaaa', waves: [11,20] },
-  dark:      { name: 'Volcanic Peaks',  color: '#9933cc', waves: [21,30] },
+  barbarian: { name: 'Desert Wastes',   color: '#cc3300', waves: [1,10],  difficulty: 1.00 },
+  undead:    { name: 'Haunted Forest',  color: '#44aaaa', waves: [11,20], difficulty: 1.18 },
+  dark:      { name: 'Volcanic Peaks',  color: '#9933cc', waves: [21,30], difficulty: 1.38 },
 };
 
 // shape: 'square' | 'circle' | 'diamond' | 'triangle'
@@ -96,23 +96,23 @@ const ENEMY_TYPES = {
 
   // ── Undead Faction (waves 11-20) ───────────────────────────
   skeleton:   { label:'Skeleton',    faction:'undead', color:0xddddcc, size:18, speedMult:1.2, hpMult:0.6,  reward:15,  lives:1, wave:11, shape:'square'                   },
-  zombie:     { label:'Zombie',      faction:'undead', color:0x558855, size:24, speedMult:0.7, hpMult:1.8,  reward:25,  lives:1, wave:11, shape:'square'                   },
-  wight:      { label:'Wight',       faction:'undead', color:0x8899bb, size:22, speedMult:1.3, hpMult:1.5,  reward:30,  lives:1, wave:12, shape:'circle'                   },
-  vampire:    { label:'Vampire',     faction:'undead', color:0x880022, size:24, speedMult:1.7, hpMult:1.8,  reward:38,  lives:1, wave:14, shape:'diamond'                  },
-  lich:       { label:'Lich',        faction:'undead', color:0x553388, size:28, speedMult:0.9, hpMult:5.0,  reward:70,  lives:2, wave:16, shape:'square'                   },
-  bonedragon: { label:'BONE DRAGON', faction:'undead', color:0xeeeedd, size:46, speedMult:0.6, hpMult:12.0, reward:160, lives:5, wave:18, shape:'diamond'                  },
-  lich_lord:  { label:'LICH LORD',   faction:'undead', color:0x4400aa, size:40, speedMult:0.5, hpMult:8.0,  reward:80,  lives:4, wave:15, shape:'diamond', bossOnly:true   },
-  death_lord: { label:'DEATH LORD',  faction:'undead', color:0x0011aa, size:52, speedMult:0.38,hpMult:20.0, reward:200, lives:6, wave:20, shape:'diamond', bossOnly:true   },
+  zombie:     { label:'Zombie',      faction:'undead', color:0x558855, size:24, speedMult:0.7, hpMult:0.85, reward:25,  lives:1, wave:11, shape:'square'                   },
+  wight:      { label:'Wight',       faction:'undead', color:0x8899bb, size:22, speedMult:1.3, hpMult:1.7,  reward:30,  lives:1, wave:12, shape:'circle'                   },
+  vampire:    { label:'Vampire',     faction:'undead', color:0x880022, size:24, speedMult:1.7, hpMult:2.4,  reward:38,  lives:1, wave:14, shape:'diamond'                  },
+  lich:       { label:'Lich',        faction:'undead', color:0x553388, size:28, speedMult:0.9, hpMult:5.5,  reward:70,  lives:2, wave:16, shape:'square'                   },
+  bonedragon: { label:'BONE DRAGON', faction:'undead', color:0xeeeedd, size:46, speedMult:0.6, hpMult:13.0, reward:160, lives:5, wave:18, shape:'diamond'                  },
+  lich_lord:  { label:'LICH LORD',   faction:'undead', color:0x4400aa, size:40, speedMult:0.5, hpMult:9.0,  reward:80,  lives:4, wave:15, shape:'diamond', bossOnly:true   },
+  death_lord: { label:'DEATH LORD',  faction:'undead', color:0x0011aa, size:52, speedMult:0.38,hpMult:23.0, reward:200, lives:6, wave:20, shape:'diamond', bossOnly:true   },
 
   // ── Dark Magic Faction (waves 21-30) ───────────────────────
   centaur:      { label:'Centaur',      faction:'dark', color:0xbb6622, size:20, speedMult:1.8, hpMult:0.9,  reward:20,  lives:1, wave:21, shape:'square'                 },
-  gargoyle:     { label:'Gargoyle',     faction:'dark', color:0x777788, size:22, speedMult:1.5, hpMult:1.2,  reward:25,  lives:1, wave:21, shape:'diamond'                },
-  griffin:      { label:'Griffin',      faction:'dark', color:0xddaa00, size:26, speedMult:1.4, hpMult:2.0,  reward:35,  lives:1, wave:22, shape:'circle'                 },
-  minotaur:     { label:'Minotaur',     faction:'dark', color:0x553300, size:32, speedMult:0.9, hpMult:4.5,  reward:55,  lives:2, wave:24, shape:'square'                 },
-  hydra:        { label:'Hydra',        faction:'dark', color:0x224422, size:36, speedMult:0.7, hpMult:7.0,  reward:90,  lives:3, wave:26, shape:'circle'                 },
-  blackdragon:  { label:'BLACK DRAGON', faction:'dark', color:0x110011, size:50, speedMult:0.65,hpMult:18.0, reward:250, lives:6, wave:28, shape:'diamond'                },
-  shadow_demon: { label:'SHADOW DEMON', faction:'dark', color:0x440033, size:40, speedMult:0.5, hpMult:8.0,  reward:80,  lives:4, wave:25, shape:'diamond', bossOnly:true },
-  demon_lord:   { label:'DEMON LORD',   faction:'dark', color:0x880000, size:52, speedMult:0.38,hpMult:20.0, reward:200, lives:6, wave:30, shape:'diamond', bossOnly:true },
+  gargoyle:     { label:'Gargoyle',     faction:'dark', color:0x777788, size:22, speedMult:1.5, hpMult:1.1,  reward:25,  lives:1, wave:21, shape:'diamond'                },
+  griffin:      { label:'Griffin',      faction:'dark', color:0xddaa00, size:26, speedMult:1.4, hpMult:2.3,  reward:35,  lives:1, wave:22, shape:'circle'                 },
+  minotaur:     { label:'Minotaur',     faction:'dark', color:0x553300, size:32, speedMult:0.9, hpMult:5.2,  reward:55,  lives:2, wave:24, shape:'square'                 },
+  hydra:        { label:'Hydra',        faction:'dark', color:0x224422, size:36, speedMult:0.7, hpMult:8.5,  reward:90,  lives:3, wave:26, shape:'circle'                 },
+  blackdragon:  { label:'BLACK DRAGON', faction:'dark', color:0x110011, size:50, speedMult:0.65,hpMult:20.0, reward:250, lives:6, wave:28, shape:'diamond'                },
+  shadow_demon: { label:'SHADOW DEMON', faction:'dark', color:0x440033, size:40, speedMult:0.5, hpMult:10.0, reward:80,  lives:4, wave:25, shape:'diamond', bossOnly:true },
+  demon_lord:   { label:'DEMON LORD',   faction:'dark', color:0x880000, size:52, speedMult:0.38,hpMult:27.0, reward:200, lives:6, wave:30, shape:'diamond', bossOnly:true },
 };
 
 const BASE_SPEED = 80;
@@ -122,6 +122,10 @@ function getFactionForWave(w) {
   for (const [key, f] of Object.entries(FACTIONS))
     if (w >= f.waves[0] && w <= f.waves[1]) return key;
   return 'dark';
+}
+function localWave(w) {
+  w = w ?? wave;
+  return w - FACTIONS[getFactionForWave(w)].waves[0] + 1;
 }
 
 function buildWaveRoster(wave) {
@@ -474,7 +478,8 @@ class Enemy {
     this.type = type;
     const def = ENEMY_TYPES[type];
     this.waypointIndex = 1;
-    const hp = Math.floor(BASE_HP * def.hpMult * (1 + wave * 0.22));
+    const diff = FACTIONS[getFactionForWave(wave)].difficulty;
+    const hp = Math.floor(BASE_HP * def.hpMult * diff * (1 + localWave(wave) * 0.22));
     this.maxHp = hp; this.hp = hp;
     this.speed = BASE_SPEED * def.speedMult;
     this.reward = def.reward;
@@ -833,10 +838,10 @@ class Tower {
     const key = stat + 'Level';
     const level = this[key];
     if (level >= MAX_UPGRADE) return false;
-    // Tier gate: total upgrades on this tower can't exceed global min + 1
+    // Per-tower tier gate: all three stats must be at level N before any can reach N+1
     if (!this.isMine) {
-      const currentTotal = this.dmgLevel + this.rangeLevel + this.rateLevel;
-      if (currentTotal >= totalUpgradesAllowed()) return false;
+      const minLevel = Math.min(this.dmgLevel, this.rangeLevel, this.rateLevel);
+      if (level >= minLevel + 1) return false;
     }
     const cost = this.upgradeCost(level);
     if (gold < cost) return false;
@@ -1083,10 +1088,10 @@ class UpgradePanel {
         { level: t.rangeLevel, stat: 'range' },
         { level: t.rateLevel,  stat: 'rate' },
       ];
-      const currentTotal = t.dmgLevel + t.rangeLevel + t.rateLevel;
-      const tierLocked = currentTotal >= totalUpgradesAllowed();
+      const minLevel = Math.min(t.dmgLevel, t.rangeLevel, t.rateLevel);
       this.rows.forEach((row, i) => {
         const lvl  = stats[i].level;
+        const tierLocked = !t.isMine && lvl >= minLevel + 1;
         row.lvl.setText('★'.repeat(lvl) + '☆'.repeat(MAX_UPGRADE - lvl));
         if (lvl >= MAX_UPGRADE) {
           row.btn.setFillStyle(0x444444).removeInteractive();
@@ -1312,6 +1317,7 @@ function updateCastleHUD() {
 
 let castlePanel = null;
 let currentFaction = 'barbarian';
+let restartFaction = 'barbarian'; // set before scene.restart() so create() knows which land
 
 function showCastlePanel(scene) {
   if (castlePanel) { castlePanel.destroy(); castlePanel = null; return; }
@@ -1364,7 +1370,7 @@ const MOVE_COST = 50;       // gold cost to move a tower after wave 1 has starte
 let interestTimer = 0;
 const INTEREST_INTERVAL = 10000, INTEREST_RATE = 0.02;
 
-let livesText, goldText, waveText, statusText, interestText, factionText;
+let livesText, goldText, waveText, landText, statusText, interestText, factionText;
 let upgradePanel;
 
 function refreshShop() {
@@ -1416,6 +1422,7 @@ function startWaveWithCountdown(scene) {
         scene._waveBtnText.setText('Wave ' + wave + '...');
         const f = FACTIONS[getFactionForWave(wave)];
         if (factionText) factionText.setText(f.name).setColor(f.color);
+        if (landText) landText.setText(f.name).setColor(f.color);
       }
     }
   });
@@ -1466,7 +1473,18 @@ function showGameOver(scene) {
   }).setOrigin(0.5).setDepth(52);
   btn.on('pointerover', () => btn.setFillStyle(0xffec6e));
   btn.on('pointerout',  () => btn.setFillStyle(0xffd700));
-  btn.on('pointerdown', () => scene.scene.restart());
+  btn.on('pointerdown', () => {
+    // Remember which land to restart from
+    restartFaction = getFactionForWave(wave);
+    // Reset all global game state so create() starts fresh
+    for (const t of towers) t.destroy();
+    for (const e of enemies) e.destroy();
+    enemies = []; towers = []; projectiles = []; placedCells = new Set(); waveRoster = [];
+    wave = FACTIONS[restartFaction].waves[0];
+    gold = 150; waveActive = false; spawnCount = 0; spawnTimer = 0; waveSize = 8;
+    castleLevel = 0; castleHP = CASTLE_LEVELS[0].maxHP; castleMaxHP = CASTLE_LEVELS[0].maxHP;
+    scene.scene.restart();
+  });
 }
 
 function selectTower(tower) {
@@ -1533,7 +1551,7 @@ function preload() {}
 
 function create() {
   scene_ref = this;
-  drawMap(this, 'barbarian');
+  drawMap(this, restartFaction);
 
   // ── Tower shop bar at bottom ──
   const shopY = 565;
@@ -1693,15 +1711,17 @@ function create() {
   castleHPBar = this.add.rectangle(14 + 60 + 2, HUD_H/2 + 6, 120, 10, 0x44dd44).setOrigin(0, 0.5).setDepth(11);
   castleHPText = this.add.text(14 + 60 + 66, HUD_H/2 + 6, '20/20', { fontSize: '9px', color: '#ffffff' }).setOrigin(0.5, 0.5).setDepth(12);
   livesText = { setText: () => {} }; // stub so old refs don't crash
-  goldText     = this.add.text(218, HUD_H/2, '💰 Gold: 150', { fontSize: '15px', color: '#ffd700' }).setOrigin(0, 0.5).setDepth(10);
-  waveText     = this.add.text(400, HUD_H/2, 'Wave: 1',      { fontSize: '15px', color: '#ffffff' }).setOrigin(0.5, 0.5).setDepth(10);
+  const rf = FACTIONS[restartFaction];
+  goldText     = this.add.text(218, HUD_H/2, '💰 Gold: ' + gold, { fontSize: '15px', color: '#ffd700' }).setOrigin(0, 0.5).setDepth(10);
+  landText     = this.add.text(400, 7,  rf.name, { fontSize: '9px',  fontFamily: 'monospace', color: rf.color }).setOrigin(0.5, 0).setDepth(10).setAlpha(0.8);
+  waveText     = this.add.text(400, 17, 'Wave: ' + localWave(), { fontSize: '13px', color: '#ffffff' }).setOrigin(0.5, 0).setDepth(10);
   const bestWave = parseInt(localStorage.getItem('td_best_wave') || '0');
   if (bestWave > 0) this.add.text(510, HUD_H/2, `🏆 Best: ${bestWave}`, { fontSize: '13px', color: '#ffdd00' }).setOrigin(0, 0.5).setDepth(10);
   const muteBtn = this.add.text(598, HUD_H/2, '🔊', { fontSize: '16px' }).setOrigin(0.5, 0.5).setDepth(10).setInteractive({ useHandCursor: true });
   muteBtn.on('pointerdown', () => { const m = SFX.toggleMute(); muteBtn.setText(m ? '🔇' : '🔊'); });
   interestText = this.add.text(400, 530, '',                           { fontSize: '13px', color: '#aaffaa', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(10);
   statusText   = this.add.text(400, 508, '',                           { fontSize: '20px', color: '#ffd700', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5, 1).setDepth(10);
-  factionText  = this.add.text(790, 44, 'Desert Wastes', { fontSize: '9px', fontFamily: 'monospace', color: '#cc3300' }).setOrigin(1, 0).setDepth(10).setAlpha(0.55);
+  factionText  = this.add.text(790, 44, rf.name, { fontSize: '9px', fontFamily: 'monospace', color: rf.color }).setOrigin(1, 0).setDepth(10).setAlpha(0.55);
 
   // ── Upgrade panel (hidden by default) ──
   upgradePanel = new UpgradePanel(this);
@@ -1725,14 +1745,14 @@ function create() {
     const prevFaction = cur;
     const prevWave = wave;
     wave = FACTIONS[nextFaction].waves[0];
-    waveText.setText('Wave: ' + wave);
-    let refund = 0;
-    for (const t of towers) { refund += TOWER_TYPES[t.type].cost; t.destroy(); }
+    waveText.setText('Wave: ' + localWave());
+    for (const t of towers) t.destroy();
     towers = []; placedCells = new Set();
-    if (refund > 0) { gold += refund; goldText.setText('💰 Gold: ' + gold); }
+    gold = 150; goldText.setText('💰 Gold: ' + gold);
     castleLevel = 0; castleMaxHP = CASTLE_LEVELS[0].maxHP; castleHP = castleMaxHP; lives = castleHP;
     drawMap(this, nextFaction);
     if (factionText) { const nf = FACTIONS[nextFaction]; factionText.setText(nf.name).setColor(nf.color); }
+    if (landText) { const nf = FACTIONS[nextFaction]; landText.setText(nf.name).setColor(nf.color); }
     refreshShop();
     showMapComplete(this, prevFaction, nextFaction);
   });
@@ -2095,19 +2115,18 @@ function update(time, delta) {
     waveActive = false;
     const prevWave = wave;
     wave++; waveSize += 3;
-    waveText.setText('Wave: ' + wave);
+    waveText.setText('Wave: ' + localWave());
     refreshShop();
 
     // Detect faction change
     const prevFaction = getFactionForWave(prevWave);
     const nextFaction = getFactionForWave(wave);
     if (nextFaction !== prevFaction) {
-      // Refund all tower gold (100%) and clear for new map layout
-      let refund = 0;
-      for (const t of towers) { refund += TOWER_TYPES[t.type].cost; t.destroy(); }
+      // Clear towers and reset gold to 150 for fresh start on new land
+      for (const t of towers) t.destroy();
       towers = [];
       placedCells = new Set();
-      if (refund > 0) { gold += refund; goldText.setText('💰 Gold: ' + gold); }
+      gold = 150; goldText.setText('💰 Gold: ' + gold);
       // Castle resets for new map
       castleLevel = 0;
       castleMaxHP = CASTLE_LEVELS[0].maxHP;
@@ -2118,6 +2137,7 @@ function update(time, delta) {
         const nf = FACTIONS[nextFaction];
         factionText.setText(nf.name).setColor(nf.color);
       }
+      if (landText) { const nf = FACTIONS[nextFaction]; landText.setText(nf.name).setColor(nf.color); }
       showMapComplete(scene_ref, prevFaction, nextFaction);
     }
     const factionMsg = nextFaction !== prevFaction
