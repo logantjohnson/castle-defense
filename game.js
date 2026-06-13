@@ -1714,6 +1714,29 @@ function create() {
   // Clear ghost whenever the pointer leaves the canvas
   this.input.on('pointerout', () => clearGhost());
 
+  // Dev shortcut: ] skips to the start of the next land (testing only)
+  this.input.keyboard.on('keydown-CLOSED_BRACKET', () => {
+    if (waveActive) return;
+    const cur = getFactionForWave(wave);
+    const factions = Object.keys(FACTIONS);
+    const idx = factions.indexOf(cur);
+    if (idx === -1 || idx === factions.length - 1) return; // already on last land
+    const nextFaction = factions[idx + 1];
+    const prevFaction = cur;
+    const prevWave = wave;
+    wave = FACTIONS[nextFaction].waves[0];
+    waveText.setText('Wave: ' + wave);
+    let refund = 0;
+    for (const t of towers) { refund += TOWER_TYPES[t.type].cost; t.destroy(); }
+    towers = []; placedCells = new Set();
+    if (refund > 0) { gold += refund; goldText.setText('💰 Gold: ' + gold); }
+    castleLevel = 0; castleMaxHP = CASTLE_LEVELS[0].maxHP; castleHP = castleMaxHP; lives = castleHP;
+    drawMap(this, nextFaction);
+    if (factionText) { const nf = FACTIONS[nextFaction]; factionText.setText(nf.name).setColor(nf.color); }
+    refreshShop();
+    showMapComplete(this, prevFaction, nextFaction);
+  });
+
   // Start Wave button
   const btn = this.add.rectangle(690, HUD_H/2, 150, 28, 0xffd700).setDepth(10).setInteractive();
   const btnText = this.add.text(690, HUD_H/2, 'Start Wave', { fontSize: '14px', fontFamily: 'Arial Black', color: '#1a1a2e' }).setOrigin(0.5).setDepth(11);
