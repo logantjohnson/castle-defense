@@ -1700,7 +1700,7 @@ function create() {
   const muteBtn = this.add.text(598, HUD_H/2, '🔊', { fontSize: '16px' }).setOrigin(0.5, 0.5).setDepth(10).setInteractive({ useHandCursor: true });
   muteBtn.on('pointerdown', () => { const m = SFX.toggleMute(); muteBtn.setText(m ? '🔇' : '🔊'); });
   interestText = this.add.text(400, 530, '',                           { fontSize: '13px', color: '#aaffaa', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(10);
-  statusText   = this.add.text(400, 290, '',                           { fontSize: '20px', color: '#ffd700', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5).setDepth(10);
+  statusText   = this.add.text(400, 508, '',                           { fontSize: '20px', color: '#ffd700', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5, 1).setDepth(10);
   factionText  = this.add.text(790, 44, 'Desert Wastes', { fontSize: '9px', fontFamily: 'monospace', color: '#cc3300' }).setOrigin(1, 0).setDepth(10).setAlpha(0.55);
 
   // ── Upgrade panel (hidden by default) ──
