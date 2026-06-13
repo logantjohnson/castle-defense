@@ -63,56 +63,70 @@ function buildPathCells(path) {
 buildPathCells(currentPath);
 
 // ── Tower definitions ─────────────────────────────────────────
-// unlockWave: 0 = available from start, N = unlocks after completing wave N
+// unlockWave: 0 = available from start, N = available from local wave N of every land
 // upgrades: [lvl0→1 cost, lvl1→2 cost, lvl2→3 cost]
 const TOWER_TYPES = {
   arrow:  { label: 'Arrow',     cost: 50,  color: 0x4488ff, range: 120, damage: 20,  fireRate: 1000, projColor: 0x88bbff, projSpeed: 300,  dmgColor: '#aaccff', sfxFire: 'arrow',     sfxHit: 'arrow',     unlockWave: 0, icon: '🏹', desc: 'Fast & cheap',           upgrades: [40,  75,  130] },
   cannon: { label: 'Cannon',    cost: 100, color: 0xff8800, range: 100, damage: 60,  fireRate: 2000, projColor: 0xff4400, projSpeed: 220,  dmgColor: '#ff8844', sfxFire: 'cannon',    sfxHit: 'cannon',    unlockWave: 0, icon: '💣', desc: 'Slow, hard hit',         upgrades: [55,  100, 175] },
   sniper: { label: 'Trebuchet', cost: 150, color: 0xaa44ff, range: 220, damage: 45,  fireRate: 2500, projColor: 0xdd88ff, projSpeed: 500,  dmgColor: '#dd88ff', sfxFire: 'trebuchet', sfxHit: 'trebuchet', unlockWave: 0, icon: '🪨', desc: 'Long range',             upgrades: [65,  120, 210] },
-  mine:   { label: 'Mine',      cost: 100, color: 0x886633, range: 0,   damage: 0,   fireRate: 99999,projColor: 0xffd700, projSpeed: 1,    dmgColor: '#ffd700', sfxFire: 'interest',  sfxHit: 'interest',  unlockWave: 0, icon: '⛏️', desc: '+2% interest/upgrade',  upgrades: [75,  125, 200] },
-  tesla:  { label: 'Titan',     cost: 300, color: 0x88aacc, range: 150, damage: 160, fireRate: 1600, projColor: 0xeeeeff, projSpeed: 999,  dmgColor: '#aaddff', sfxFire: 'tesla',     sfxHit: 'tesla',     unlockWave: 3, icon: '🗿', desc: 'Lightning bolts',        upgrades: [100, 175, 300] },
-  flame:  { label: 'Dragon',    cost: 450, color: 0x44bb44, range: 80,  damage: 250, fireRate: 550,  projColor: 0xff6600, projSpeed: 180,  dmgColor: '#ff4400', sfxFire: 'flame',     sfxHit: 'flame',     unlockWave: 6, icon: '🐉', desc: 'Fire breath, close range', upgrades: [120, 210, 360] },
+  mine:   { label: 'Mine',      cost: 100, color: 0x886633, range: 0,   damage: 0,   fireRate: 99999,projColor: 0xffd700, projSpeed: 1,    dmgColor: '#ffd700', sfxFire: 'interest',  sfxHit: 'interest',  unlockWave: 5, icon: '⛏️', desc: '+2% interest (max 1)',   upgrades: [75,  125, 200] },
+  tesla:  { label: 'Titan',     cost: 300, color: 0x88aacc, range: 150, damage: 160, fireRate: 1600, projColor: 0xeeeeff, projSpeed: 999,  dmgColor: '#aaddff', sfxFire: 'tesla',     sfxHit: 'tesla',     unlockWave: 7,  icon: '🗿', desc: 'Lightning bolts',        upgrades: [100, 175, 300] },
+  flame:  { label: 'Dragon',    cost: 450, color: 0x44bb44, range: 80,  damage: 250, fireRate: 550,  projColor: 0xff6600, projSpeed: 180,  dmgColor: '#ff4400', sfxFire: 'flame',     sfxHit: 'flame',     unlockWave: 13, icon: '🐉', desc: 'Fire breath, close range', upgrades: [120, 210, 360] },
 };
 
 // ── Enemy factions & types ────────────────────────────────────
 const FACTIONS = {
-  barbarian: { name: 'Desert Wastes',   color: '#cc3300', waves: [1,10],  difficulty: 1.00 },
-  undead:    { name: 'Haunted Forest',  color: '#44aaaa', waves: [11,20], difficulty: 1.18 },
-  dark:      { name: 'Volcanic Peaks',  color: '#9933cc', waves: [21,30], difficulty: 1.38 },
+  barbarian: { name: 'Desert Wastes',   color: '#cc3300', waves: [1,20],  difficulty: 1.00 },
+  undead:    { name: 'Haunted Forest',  color: '#44aaaa', waves: [21,40], difficulty: 1.18 },
+  dark:      { name: 'Volcanic Peaks',  color: '#9933cc', waves: [41,60], difficulty: 1.38 },
 };
+
+// ── Difficulty modes ──────────────────────────────────────────
+// hpMult/countMult/rewardMult scale enemy strength, numbers, and payout.
+// gold = starting gold per land. These are first-pass values; tuned in the balance pass.
+const DIFFICULTY_MODES = {
+  easy:   { name: 'Easy',   color: '#55cc55', hpMult: 0.75, countMult: 0.80, rewardMult: 1.15, gold: 225, blurb: 'A relaxed defense' },
+  normal: { name: 'Normal', color: '#ffd700', hpMult: 1.00, countMult: 1.00, rewardMult: 1.00, gold: 150, blurb: 'The intended challenge' },
+  hard:   { name: 'Hard',   color: '#ff8822', hpMult: 1.30, countMult: 1.10, rewardMult: 0.95, gold: 150, blurb: 'For seasoned defenders' },
+  heroic: { name: 'Heroic', color: '#ff3333', hpMult: 1.65, countMult: 1.20, rewardMult: 0.90, gold: 150, blurb: 'Only the bravest knights' },
+};
+let currentDifficulty = 'normal';
+function diffMode() { return DIFFICULTY_MODES[currentDifficulty]; }
 
 // shape: 'square' | 'circle' | 'diamond' | 'triangle'
 // bossOnly: true means only spawned as the wave boss, never in normal pool
+// wave = the GLOBAL wave an enemy first appears. Non-boss units unlock across local
+// waves 1/3/6/9/13; mini boss at local 10, big boss at local 20 (per 20-wave land).
 const ENEMY_TYPES = {
-  // ── Barbarian Faction (waves 1-10) ─────────────────────────
+  // ── Barbarian Faction (waves 1-20) ─────────────────────────
   goblin:         { label:'Goblin',         faction:'barbarian', color:0x44aa22, size:18, speedMult:1.6, hpMult:0.5,  reward:10,  lives:1, wave:1,  shape:'square'                    },
   wolf:           { label:'Wolf',           faction:'barbarian', color:0x997755, size:20, speedMult:2.0, hpMult:0.7,  reward:22,  lives:1, wave:1,  shape:'circle'                    },
-  orc:            { label:'Orc',            faction:'barbarian', color:0x886600, size:24, speedMult:1.0, hpMult:1.0,  reward:18,  lives:1, wave:2,  shape:'square'                    },
-  ogre:           { label:'Ogre',           faction:'barbarian', color:0xcc6600, size:32, speedMult:0.7, hpMult:3.0,  reward:40,  lives:2, wave:4,  shape:'square'                    },
-  troll:          { label:'Troll',          faction:'barbarian', color:0x336633, size:30, speedMult:0.8, hpMult:4.0,  reward:50,  lives:2, wave:6,  shape:'circle'                    },
-  cyclops:        { label:'CYCLOPS',        faction:'barbarian', color:0xaa2200, size:44, speedMult:0.5, hpMult:9.0,  reward:120, lives:4, wave:8,  shape:'diamond'                   },
-  warchief:       { label:'ORC WARCHIEF',   faction:'barbarian', color:0xcc1100, size:40, speedMult:0.5, hpMult:8.0,  reward:80,  lives:4, wave:5,  shape:'diamond', bossOnly:true    },
-  barbarian_king: { label:'BARBARIAN KING', faction:'barbarian', color:0xff2200, size:52, speedMult:0.38,hpMult:20.0, reward:200, lives:6, wave:10, shape:'diamond', bossOnly:true    },
+  orc:            { label:'Orc',            faction:'barbarian', color:0x886600, size:24, speedMult:1.0, hpMult:1.0,  reward:18,  lives:1, wave:3,  shape:'square'                    },
+  ogre:           { label:'Ogre',           faction:'barbarian', color:0xcc6600, size:32, speedMult:0.7, hpMult:3.0,  reward:40,  lives:2, wave:6,  shape:'square'                    },
+  troll:          { label:'Troll',          faction:'barbarian', color:0x336633, size:30, speedMult:0.8, hpMult:4.0,  reward:50,  lives:2, wave:9,  shape:'circle'                    },
+  cyclops:        { label:'CYCLOPS',        faction:'barbarian', color:0xaa2200, size:44, speedMult:0.5, hpMult:9.0,  reward:120, lives:4, wave:13, shape:'diamond'                   },
+  warchief:       { label:'ORC WARCHIEF',   faction:'barbarian', color:0xcc1100, size:40, speedMult:0.5, hpMult:8.0,  reward:80,  lives:4, wave:10, shape:'diamond', bossOnly:true    },
+  barbarian_king: { label:'BARBARIAN KING', faction:'barbarian', color:0xff2200, size:52, speedMult:0.38,hpMult:20.0, reward:200, lives:6, wave:20, shape:'diamond', bossOnly:true    },
 
-  // ── Undead Faction (waves 11-20) ───────────────────────────
-  skeleton:   { label:'Skeleton',    faction:'undead', color:0xddddcc, size:18, speedMult:1.2, hpMult:0.6,  reward:15,  lives:1, wave:11, shape:'square'                   },
-  zombie:     { label:'Zombie',      faction:'undead', color:0x558855, size:24, speedMult:0.7, hpMult:0.85, reward:25,  lives:1, wave:11, shape:'square'                   },
-  wight:      { label:'Wight',       faction:'undead', color:0x8899bb, size:22, speedMult:1.3, hpMult:1.7,  reward:30,  lives:1, wave:12, shape:'circle'                   },
-  vampire:    { label:'Vampire',     faction:'undead', color:0x880022, size:24, speedMult:1.7, hpMult:2.4,  reward:38,  lives:1, wave:14, shape:'diamond'                  },
-  lich:       { label:'Lich',        faction:'undead', color:0x553388, size:28, speedMult:0.9, hpMult:5.5,  reward:70,  lives:2, wave:16, shape:'square'                   },
-  bonedragon: { label:'BONE DRAGON', faction:'undead', color:0xeeeedd, size:46, speedMult:0.6, hpMult:13.0, reward:160, lives:5, wave:18, shape:'diamond'                  },
-  lich_lord:  { label:'LICH LORD',   faction:'undead', color:0x4400aa, size:40, speedMult:0.5, hpMult:9.0,  reward:80,  lives:4, wave:15, shape:'diamond', bossOnly:true   },
-  death_lord: { label:'DEATH LORD',  faction:'undead', color:0x0011aa, size:52, speedMult:0.38,hpMult:23.0, reward:200, lives:6, wave:20, shape:'diamond', bossOnly:true   },
+  // ── Undead Faction (waves 21-40) ───────────────────────────
+  skeleton:   { label:'Skeleton',    faction:'undead', color:0xddddcc, size:18, speedMult:1.2, hpMult:0.6,  reward:15,  lives:1, wave:21, shape:'square'                   },
+  zombie:     { label:'Zombie',      faction:'undead', color:0x558855, size:24, speedMult:0.7, hpMult:0.85, reward:25,  lives:1, wave:21, shape:'square'                   },
+  wight:      { label:'Wight',       faction:'undead', color:0x8899bb, size:22, speedMult:1.3, hpMult:1.7,  reward:30,  lives:1, wave:23, shape:'circle'                   },
+  vampire:    { label:'Vampire',     faction:'undead', color:0x880022, size:24, speedMult:1.7, hpMult:2.4,  reward:38,  lives:1, wave:26, shape:'diamond'                  },
+  lich:       { label:'Lich',        faction:'undead', color:0x553388, size:28, speedMult:0.9, hpMult:5.5,  reward:70,  lives:2, wave:29, shape:'square'                   },
+  bonedragon: { label:'BONE DRAGON', faction:'undead', color:0xeeeedd, size:46, speedMult:0.6, hpMult:13.0, reward:160, lives:5, wave:33, shape:'diamond'                  },
+  lich_lord:  { label:'LICH LORD',   faction:'undead', color:0x4400aa, size:40, speedMult:0.5, hpMult:9.0,  reward:80,  lives:4, wave:30, shape:'diamond', bossOnly:true   },
+  death_lord: { label:'DEATH LORD',  faction:'undead', color:0x0011aa, size:52, speedMult:0.38,hpMult:23.0, reward:200, lives:6, wave:40, shape:'diamond', bossOnly:true   },
 
-  // ── Dark Magic Faction (waves 21-30) ───────────────────────
-  centaur:      { label:'Centaur',      faction:'dark', color:0xbb6622, size:20, speedMult:1.8, hpMult:0.9,  reward:20,  lives:1, wave:21, shape:'square'                 },
-  gargoyle:     { label:'Gargoyle',     faction:'dark', color:0x777788, size:22, speedMult:1.5, hpMult:1.1,  reward:25,  lives:1, wave:21, shape:'diamond'                },
-  griffin:      { label:'Griffin',      faction:'dark', color:0xddaa00, size:26, speedMult:1.4, hpMult:2.3,  reward:35,  lives:1, wave:22, shape:'circle'                 },
-  minotaur:     { label:'Minotaur',     faction:'dark', color:0x553300, size:32, speedMult:0.9, hpMult:5.2,  reward:55,  lives:2, wave:24, shape:'square'                 },
-  hydra:        { label:'Hydra',        faction:'dark', color:0x224422, size:36, speedMult:0.7, hpMult:8.5,  reward:90,  lives:3, wave:26, shape:'circle'                 },
-  blackdragon:  { label:'BLACK DRAGON', faction:'dark', color:0x110011, size:50, speedMult:0.65,hpMult:20.0, reward:250, lives:6, wave:28, shape:'diamond'                },
-  shadow_demon: { label:'SHADOW DEMON', faction:'dark', color:0x440033, size:40, speedMult:0.5, hpMult:10.0, reward:80,  lives:4, wave:25, shape:'diamond', bossOnly:true },
-  demon_lord:   { label:'DEMON LORD',   faction:'dark', color:0x880000, size:52, speedMult:0.38,hpMult:27.0, reward:200, lives:6, wave:30, shape:'diamond', bossOnly:true },
+  // ── Dark Magic Faction (waves 41-60) ───────────────────────
+  centaur:      { label:'Centaur',      faction:'dark', color:0xbb6622, size:20, speedMult:1.8, hpMult:0.9,  reward:20,  lives:1, wave:41, shape:'square'                 },
+  gargoyle:     { label:'Gargoyle',     faction:'dark', color:0x777788, size:22, speedMult:1.5, hpMult:1.1,  reward:25,  lives:1, wave:41, shape:'diamond'                },
+  griffin:      { label:'Griffin',      faction:'dark', color:0xddaa00, size:26, speedMult:1.4, hpMult:2.3,  reward:35,  lives:1, wave:43, shape:'circle'                 },
+  minotaur:     { label:'Minotaur',     faction:'dark', color:0x553300, size:32, speedMult:0.9, hpMult:5.2,  reward:55,  lives:2, wave:46, shape:'square'                 },
+  hydra:        { label:'Hydra',        faction:'dark', color:0x224422, size:36, speedMult:0.7, hpMult:8.5,  reward:90,  lives:3, wave:49, shape:'circle'                 },
+  blackdragon:  { label:'BLACK DRAGON', faction:'dark', color:0x110011, size:50, speedMult:0.65,hpMult:20.0, reward:250, lives:6, wave:53, shape:'diamond'                },
+  shadow_demon: { label:'SHADOW DEMON', faction:'dark', color:0x440033, size:40, speedMult:0.5, hpMult:10.0, reward:80,  lives:4, wave:50, shape:'diamond', bossOnly:true },
+  demon_lord:   { label:'DEMON LORD',   faction:'dark', color:0x880000, size:52, speedMult:0.38,hpMult:27.0, reward:200, lives:6, wave:60, shape:'diamond', bossOnly:true },
 };
 
 const BASE_SPEED = 80;
@@ -138,7 +152,7 @@ function buildWaveRoster(wave) {
   // Scale enemy count by local wave number so wave 21 feels like wave 1 of its map
   const factionStart = FACTIONS[faction].waves[0];
   const localWave = wave - factionStart + 1;
-  const total = 8 + localWave * 2;
+  const total = Math.max(4, Math.round((8 + localWave * 2) * diffMode().countMult));
 
   // Fill: weight toward harder units as wave progresses
   for (let i = 0; i < total; i++) {
@@ -154,7 +168,7 @@ function buildWaveRoster(wave) {
     const j = Math.floor(Math.random() * (i+1));
     [roster[i], roster[j]] = [roster[j], roster[i]];
   }
-  // Append boss as the final enemy on boss waves (local wave 5 = mini boss, local wave 10 = final boss)
+  // Append boss as the final enemy on boss waves (local wave 10 = mini boss, local wave 20 = final boss)
   const boss = Object.entries(ENEMY_TYPES).find(([,d]) => d.bossOnly && d.wave === wave);
   if (boss) roster.push(boss[0]);
   return roster;
@@ -478,11 +492,12 @@ class Enemy {
     this.type = type;
     const def = ENEMY_TYPES[type];
     this.waypointIndex = 1;
-    const diff = FACTIONS[getFactionForWave(wave)].difficulty;
-    const hp = Math.floor(BASE_HP * def.hpMult * diff * (1 + localWave(wave) * 0.22));
+    const landDiff = FACTIONS[getFactionForWave(wave)].difficulty;
+    const mode = diffMode();
+    const hp = Math.floor(BASE_HP * def.hpMult * landDiff * mode.hpMult * (1 + localWave(wave) * 0.22));
     this.maxHp = hp; this.hp = hp;
     this.speed = BASE_SPEED * def.speedMult;
-    this.reward = def.reward;
+    this.reward = Math.floor(def.reward * mode.rewardMult);
     this.liveDmg = def.lives;
     this.alive = true; this.reached = false;
     this.x = currentPath[0].x;
@@ -828,11 +843,23 @@ class Tower {
 
   _icon(t) { return TOWER_TYPES[t].icon; }
 
-  get damage()   { return Math.floor(this.baseDef.damage   * (1 + this.dmgLevel   * 0.4)); }
+  get damage()   { return Math.floor(this.baseDef.damage   * (1 + this.dmgLevel   * 0.20)); } // each ★ = +20% dmg (was 40%)
   get range()    { return Math.floor(this.baseDef.range    * (1 + this.rangeLevel * 0.3)); }
   get fireRate() { return Math.floor(this.baseDef.fireRate * (1 - this.rateLevel  * 0.2)); }
 
   upgradeCost(level) { return this.baseDef.upgrades ? this.baseDef.upgrades[level] : (level + 1) * 75; }
+
+  // Total gold sunk into this tower: base cost + every upgrade purchased
+  investedValue() {
+    let total = this.baseDef.cost;
+    for (const lvl of [this.dmgLevel, this.rangeLevel, this.rateLevel]) {
+      for (let l = 0; l < lvl; l++) total += this.upgradeCost(l);
+    }
+    return total;
+  }
+
+  // Cost to relocate: 50% of everything invested — cheap for basic towers, steep for upgraded ones
+  moveCost() { return Math.floor(this.investedValue() * MOVE_COST_PCT); }
 
   upgrade(stat) {
     const key = stat + 'Level';
@@ -900,6 +927,7 @@ class Tower {
     spawnDamageNumber(scene_ref, this.x, this.y, '+' + refund + 'g', '#ffd700');
     SFX.play('place_tower');
     refreshAllDragons();
+    refreshShop(); // re-enable the mine button if this was the mine
   }
 
   update(delta, enemies) {
@@ -1005,13 +1033,9 @@ class UpgradePanel {
     this.moveBtn.on('pointerdown', (ptr) => {
       ptr.event.stopPropagation();
       if (!this.tower) return;
-      if (movingTower === this.tower) {
-        cancelMove();
-      } else {
-        startMove(this.tower);
-        if (movingTower) { this.moveBtn.setFillStyle(0x885500); this.moveBtnTxt.setText('✕ Cancel'); }
-      }
-      this.refresh();
+      // startMove charges, hides this panel, and enters move mode.
+      // If the player can't afford it, the panel stays and shows the error.
+      startMove(this.tower);
     });
 
     // Sell button
@@ -1056,9 +1080,10 @@ class UpgradePanel {
     const label = t.isDragon ? DRAGON_NAMES[globalUpgradeTier()] : t.baseDef.label + (t.isTitan ? '' : '');
     this.title.setText(label + '  Lv.' + (t.dmgLevel + t.rangeLevel + t.rateLevel + 1));
     const inMove = movingTower === t;
-    const preWave = !waveActive && wave === 1;
-    const moveLabel = inMove ? '✕ Cancel' : (preWave ? '✋ Free Move' : `✋ Move (${MOVE_COST}g)`);
-    this.moveBtn.setFillStyle(inMove ? 0x885500 : (!preWave && gold < MOVE_COST ? 0x662222 : 0x224488));
+    const preWave = !waveActive && localWave() === 1;
+    const moveCost = t.moveCost();
+    const moveLabel = inMove ? '✕ Cancel' : (preWave ? '✋ Free Move' : `✋ Move (${moveCost}g)`);
+    this.moveBtn.setFillStyle(inMove ? 0x885500 : (!preWave && gold < moveCost ? 0x662222 : 0x224488));
     this.moveBtnTxt.setText(moveLabel);
     const sellPrice = Math.floor(t.baseDef.cost * 0.75);
     this.sellBtnTxt.setText(`💰 Sell ${sellPrice}g`);
@@ -1121,6 +1146,461 @@ class UpgradePanel {
   }
 }
 
+// ── Title screen ──────────────────────────────────────────────
+function drawTitleCastle(scene, cx, baseY) {
+  const g = scene.add.graphics();
+  const stone = 0x9a9aa6, stoneDark = 0x6f6f7d, stoneLt = 0xb8b8c4;
+  const roof = 0x8a2030, roofDark = 0x5a1420;
+
+  // Helper: a crenellated tower
+  function tower(x, w, topY, withRoof) {
+    g.fillStyle(stoneDark, 1); g.fillRect(x, topY, w, baseY - topY);
+    g.fillStyle(stone, 1);     g.fillRect(x + 3, topY, w - 6, baseY - topY);
+    g.fillStyle(stoneLt, 0.5); g.fillRect(x + 3, topY, 4, baseY - topY);
+    // battlements
+    g.fillStyle(stoneDark, 1);
+    for (let bx = x; bx < x + w; bx += 12) g.fillRect(bx, topY - 8, 7, 8);
+    if (withRoof) {
+      g.fillStyle(roofDark, 1); g.fillTriangle(x - 6, topY - 6, x + w + 6, topY - 6, x + w/2, topY - 40);
+      g.fillStyle(roof, 1);     g.fillTriangle(x - 2, topY - 6, x + w + 2, topY - 6, x + w/2, topY - 36);
+    }
+    // a couple of lit windows
+    g.fillStyle(0xffcc44, 1);
+    g.fillRect(x + w/2 - 4, topY + 18, 8, 12);
+    g.fillStyle(0x1a1208, 1);
+    g.fillRect(x + w/2 - 4, topY + 18, 8, 4);
+  }
+
+  // Back curtain wall
+  g.fillStyle(stoneDark, 1); g.fillRect(cx - 110, baseY - 90, 220, 90);
+  g.fillStyle(stone, 1);     g.fillRect(cx - 107, baseY - 88, 214, 88);
+  g.fillStyle(stoneDark, 1);
+  for (let bx = cx - 110; bx < cx + 110; bx += 16) g.fillRect(bx, baseY - 98, 9, 10);
+
+  // Side towers + central keep
+  tower(cx - 120, 38, baseY - 130, true);
+  tower(cx + 82,  38, baseY - 130, true);
+  tower(cx - 32,  64, baseY - 200, true); // tall central keep
+
+  // Gate
+  g.fillStyle(stoneDark, 1); g.fillRect(cx - 26, baseY - 56, 52, 56);
+  g.fillStyle(0x140a06, 1);  g.fillRect(cx - 20, baseY - 50, 40, 50);
+  g.fillStyle(0x140a06, 1);  g.fillCircle(cx, baseY - 50, 20);
+  // portcullis bars
+  g.lineStyle(2, 0x3a2a1a, 1);
+  for (let bx = cx - 16; bx <= cx + 16; bx += 8) { g.beginPath(); g.moveTo(bx, baseY - 50); g.lineTo(bx, baseY - 6); g.strokePath(); }
+
+  // Princess in the central keep window (the one we protect)
+  const py = baseY - 176;
+  g.fillStyle(0xffcc44, 1); g.fillRect(cx - 9, py, 18, 24);     // warm lit window
+  g.fillStyle(0x140a06, 1); g.fillRect(cx - 9, py, 18, 5);
+  g.fillStyle(0xe8a0c0, 1); g.fillCircle(cx, py + 12, 5);        // head/hair
+  g.fillStyle(0xffe0ee, 1); g.fillCircle(cx, py + 14, 3.4);      // face
+  g.fillStyle(0xffd700, 1); g.fillTriangle(cx - 4, py + 8, cx + 4, py + 8, cx, py + 3); // tiny crown
+
+  // Banners on the keep
+  g.fillStyle(0x2244aa, 1); g.fillRect(cx - 30, baseY - 196, 5, 26); g.fillTriangle(cx - 30, baseY - 170, cx - 25, baseY - 170, cx - 27, baseY - 162);
+  g.fillStyle(0x2244aa, 1); g.fillRect(cx + 25, baseY - 196, 5, 26); g.fillTriangle(cx + 25, baseY - 170, cx + 30, baseY - 170, cx + 27, baseY - 162);
+  return g;
+}
+
+function drawTitleKnight(scene, x, y) {
+  const g = scene.add.graphics();
+  const steel = 0xc4c8d4, steelDark = 0x8a8e9c, steelLt = 0xe4e8f0;
+  // cape
+  g.fillStyle(0x8a1828, 1); g.fillTriangle(x - 4, y - 36, x + 16, y - 30, x + 12, y + 24);
+  // legs
+  g.fillStyle(steelDark, 1); g.fillRect(x - 10, y + 6, 8, 22); g.fillRect(x + 2, y + 6, 8, 22);
+  g.fillStyle(0x3a3a44, 1);  g.fillRect(x - 11, y + 26, 11, 6); g.fillRect(x + 1, y + 26, 11, 6); // boots
+  // torso (breastplate)
+  g.fillStyle(steel, 1);     g.fillRoundedRect(x - 13, y - 22, 26, 32, 5);
+  g.fillStyle(steelLt, 0.6); g.fillRect(x - 10, y - 20, 5, 28);
+  g.lineStyle(2, steelDark, 1); g.strokeRoundedRect(x - 13, y - 22, 26, 32, 5);
+  // shield (left arm)
+  g.fillStyle(0x2244aa, 1);  g.fillRoundedRect(x - 30, y - 18, 20, 28, 4);
+  g.fillStyle(0xffd700, 1);  g.fillRect(x - 22, y - 14, 4, 20); g.fillRect(x - 27, y - 6, 14, 4); // cross
+  g.lineStyle(2, 0xe4e8f0, 1); g.strokeRoundedRect(x - 30, y - 18, 20, 28, 4);
+  // sword (right arm, raised)
+  g.fillStyle(steelLt, 1);   g.fillRect(x + 18, y - 64, 5, 48);   // blade
+  g.fillStyle(0xffd700, 1);  g.fillRect(x + 12, y - 18, 17, 5);   // crossguard
+  g.fillStyle(0x6a4a2a, 1);  g.fillRect(x + 18, y - 14, 5, 10);   // grip
+  // head + helmet
+  g.fillStyle(0xe0b89a, 1);  g.fillCircle(x, y - 30, 7);          // face
+  g.fillStyle(steel, 1);     g.fillRoundedRect(x - 8, y - 40, 16, 14, 4); // helm
+  g.fillStyle(0x140a06, 1);  g.fillRect(x - 6, y - 32, 12, 3);    // visor slit
+  g.fillStyle(0xcc2244, 1);  g.fillTriangle(x - 2, y - 44, x + 2, y - 44, x + 10, y - 56); // plume
+  return g;
+}
+
+function drawTitleEnemy(scene, x, y, scale, color) {
+  const g = scene.add.graphics();
+  const s = scale;
+  // hunched dark body
+  g.fillStyle(0x14100c, 1); g.fillEllipse(x, y, 30 * s, 24 * s);
+  g.fillStyle(color, 0.85);  g.fillCircle(x, y - 14 * s, 11 * s);   // head
+  // glowing red eyes
+  g.fillStyle(0xff2200, 1);  g.fillCircle(x - 4 * s, y - 15 * s, 2.2 * s); g.fillCircle(x + 4 * s, y - 15 * s, 2.2 * s);
+  // horns
+  g.fillStyle(0x0a0806, 1);  g.fillTriangle(x - 10*s, y - 20*s, x - 6*s, y - 20*s, x - 12*s, y - 30*s);
+  g.fillStyle(0x0a0806, 1);  g.fillTriangle(x + 10*s, y - 20*s, x + 6*s, y - 20*s, x + 12*s, y - 30*s);
+  return g;
+}
+
+function drawTitleTower(scene, x, y, type) {
+  const g = scene.add.graphics();
+  const stone = 0x8a8a96, stoneDark = 0x5f5f6d;
+  g.fillStyle(stoneDark, 1); g.fillRect(x - 13, y - 34, 26, 40);
+  g.fillStyle(stone, 1);     g.fillRect(x - 11, y - 34, 22, 40);
+  g.fillStyle(stoneDark, 1);
+  for (let bx = x - 13; bx < x + 13; bx += 9) g.fillRect(bx, y - 40, 5, 7);
+  if (type === 'arrow') {
+    g.fillStyle(0x4488ff, 1); g.fillCircle(x, y - 22, 7);
+    g.lineStyle(2, 0xffffff, 1); g.beginPath(); g.moveTo(x - 6, y - 22); g.lineTo(x + 8, y - 22); g.strokePath();
+  } else {
+    g.fillStyle(0xff8800, 1); g.fillCircle(x, y - 20, 8);
+    g.fillStyle(0x222222, 1); g.fillCircle(x + 6, y - 24, 4);
+  }
+  return g;
+}
+
+function createTitle() {
+  const scene = this;
+  const W = 800, H = 600;
+
+  // ---- Night sky gradient ----
+  const sky = scene.add.graphics();
+  sky.fillGradientStyle(0x140a2e, 0x140a2e, 0x3a1a4a, 0x6a2a44, 1);
+  sky.fillRect(0, 0, W, 380);
+
+  // ---- Moon + glow ----
+  const moon = scene.add.graphics();
+  moon.fillStyle(0xffe9b0, 0.15); moon.fillCircle(648, 92, 70);
+  moon.fillStyle(0xffe9b0, 1);    moon.fillCircle(648, 92, 44);
+  moon.fillStyle(0x3a1a4a, 0.35); moon.fillCircle(666, 80, 38);
+
+  // ---- Twinkling stars ----
+  for (let i = 0; i < 70; i++) {
+    const star = scene.add.circle(Math.random() * W, Math.random() * 330,
+      Math.random() * 1.4 + 0.4, 0xffffff, Math.random() * 0.6 + 0.3);
+    scene.tweens.add({ targets: star, alpha: 0.1, duration: 800 + Math.random() * 2200, yoyo: true, repeat: -1 });
+  }
+
+  // ---- Distant mountains ----
+  const mt = scene.add.graphics();
+  mt.fillStyle(0x281838, 1);
+  mt.fillTriangle(-60, 380, 170, 190, 380, 380);
+  mt.fillTriangle(240, 380, 470, 160, 700, 380);
+  mt.fillStyle(0x1d1228, 1);
+  mt.fillTriangle(480, 380, 770, 210, 1000, 380);
+
+  // ---- Ground ----
+  const ground = scene.add.graphics();
+  ground.fillStyle(0x1c2814, 1); ground.fillRect(0, 366, W, 234);
+  ground.fillStyle(0x26341c, 1); ground.fillRect(0, 396, W, 204);
+
+  // ---- Scene actors ----
+  drawTitleCastle(scene, 400, 392);
+  drawTitleTower(scene, 150, 430, 'arrow');
+  drawTitleTower(scene, 235, 446, 'cannon');
+  drawTitleKnight(scene, 300, 430);
+  // enemy horde massing on the right
+  drawTitleEnemy(scene, 600, 440, 1.3, 0x3a5a22);
+  drawTitleEnemy(scene, 680, 452, 1.0, 0x6a2a2a);
+  drawTitleEnemy(scene, 740, 436, 1.1, 0x4a3a1a);
+  drawTitleEnemy(scene, 645, 470, 0.85, 0x2a4a3a);
+
+  // ---- Title text ----
+  const t1 = scene.add.text(W/2, 70, 'CASTLE', {
+    fontSize: '74px', fontFamily: 'Arial Black', color: '#ffd700',
+    stroke: '#2a1408', strokeThickness: 10
+  }).setOrigin(0.5);
+  const t2 = scene.add.text(W/2, 138, 'DEFENSE', {
+    fontSize: '56px', fontFamily: 'Arial Black', color: '#e8c060',
+    stroke: '#2a1408', strokeThickness: 9
+  }).setOrigin(0.5);
+  scene.add.text(W/2, 184, '★  Defend the realm · Save the princess  ★', {
+    fontSize: '15px', fontFamily: 'monospace', color: '#ffeebb'
+  }).setOrigin(0.5);
+  scene.tweens.add({ targets: [t1, t2], y: '+=6', duration: 2200, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+
+  // ---- Difficulty selector ----
+  scene.add.text(W/2, 466, 'CHOOSE YOUR DIFFICULTY', {
+    fontSize: '13px', fontFamily: 'Arial Black', color: '#ffffff'
+  }).setOrigin(0.5).setAlpha(0.8);
+
+  const modes = Object.keys(DIFFICULTY_MODES);
+  const bw = 150, gap = 12;
+  const totalW = modes.length * bw + (modes.length - 1) * gap;
+  let bx = (W - totalW) / 2 + bw / 2;
+  const diffBtns = {};
+  const blurb = scene.add.text(W/2, 524, '', { fontSize: '12px', fontFamily: 'monospace', color: '#cccccc' }).setOrigin(0.5);
+
+  function refreshDiff() {
+    for (const [k, b] of Object.entries(diffBtns)) {
+      const sel = k === currentDifficulty;
+      const m = DIFFICULTY_MODES[k];
+      b.bg.setStrokeStyle(sel ? 4 : 2, sel ? 0xffffff : 0x444455);
+      b.bg.setFillStyle(Phaser.Display.Color.HexStringToColor(m.color).color, sel ? 0.85 : 0.35);
+      b.label.setColor(sel ? '#1a1a2e' : '#dddddd');
+    }
+    const m = DIFFICULTY_MODES[currentDifficulty];
+    blurb.setText(`${m.blurb}  ·  start gold ${m.gold}`);
+  }
+
+  for (const k of modes) {
+    const m = DIFFICULTY_MODES[k];
+    const bg = scene.add.rectangle(bx, 498, bw, 34, 0x333344).setInteractive({ useHandCursor: true });
+    const label = scene.add.text(bx, 498, m.name, { fontSize: '15px', fontFamily: 'Arial Black', color: '#dddddd' }).setOrigin(0.5);
+    bg.on('pointerover', () => { if (k !== currentDifficulty) bg.setFillStyle(Phaser.Display.Color.HexStringToColor(m.color).color, 0.55); });
+    bg.on('pointerout',  () => refreshDiff());
+    bg.on('pointerdown', () => { currentDifficulty = k; SFX.play('place_tower'); refreshDiff(); });
+    diffBtns[k] = { bg, label };
+    bx += bw + gap;
+  }
+  refreshDiff();
+
+  // ---- Start button ----
+  const startBg = scene.add.rectangle(W/2, 566, 260, 46, 0x2a8a2a).setInteractive({ useHandCursor: true });
+  startBg.setStrokeStyle(3, 0xffd700);
+  const startTxt = scene.add.text(W/2, 566, '▶  START GAME', {
+    fontSize: '22px', fontFamily: 'Arial Black', color: '#ffffff', stroke: '#0a2a0a', strokeThickness: 3
+  }).setOrigin(0.5);
+  startBg.on('pointerover', () => { startBg.setFillStyle(0x33aa33); startTxt.setScale(1.05); });
+  startBg.on('pointerout',  () => { startBg.setFillStyle(0x2a8a2a); startTxt.setScale(1); });
+  startBg.on('pointerdown', () => {
+    SFX.play('wave_complete');
+    resetProgress();
+    scene.scene.start('worldmap');
+  });
+  scene.tweens.add({ targets: startBg, scaleX: 1.03, scaleY: 1.03, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+}
+
+// ── World map screen ──────────────────────────────────────────
+const MAP_NODES = {
+  barbarian: { x: 175, y: 405 },
+  undead:    { x: 400, y: 250 },
+  dark:      { x: 625, y: 405 },
+};
+const MAP_CAMP = { x: 85, y: 500 };
+
+function makeKnightToken(scene) {
+  const g = scene.add.graphics().setDepth(30);
+  g.fillStyle(0x8a1828, 1); g.fillTriangle(-3, -14, 8, -12, 6, 9);     // cape
+  g.fillStyle(0x8a8e9c, 1); g.fillRect(-5, -2, 4, 11); g.fillRect(1, -2, 4, 11); // legs
+  g.fillStyle(0xc4c8d4, 1); g.fillRoundedRect(-6, -13, 12, 16, 3);     // torso
+  g.fillStyle(0x2244aa, 1); g.fillRoundedRect(-14, -9, 9, 14, 2);      // shield
+  g.fillStyle(0xffd700, 1); g.fillRect(-10, -6, 2, 9); g.fillRect(-13, -2, 7, 2); // cross
+  g.fillStyle(0xe4e8f0, 1); g.fillRect(9, -28, 3, 23);                 // sword
+  g.fillStyle(0xe0b89a, 1); g.fillCircle(0, -17, 4);                   // face
+  g.fillStyle(0xc4c8d4, 1); g.fillRoundedRect(-5, -23, 10, 8, 2);      // helm
+  g.fillStyle(0xcc2244, 1); g.fillTriangle(-1, -25, 1, -25, 6, -33);   // plume
+  return g;
+}
+
+function drawLandNode(scene, faction, state) {
+  const n = MAP_NODES[faction];
+  const f = FACTIONS[faction];
+  const col = Phaser.Display.Color.HexStringToColor(f.color).color;
+  const objs = [];
+  const g = scene.add.graphics().setDepth(10);
+  objs.push(g);
+  // emblem disc
+  g.fillStyle(0x000000, 0.22); g.fillEllipse(n.x, n.y + 40, 84, 26);
+  g.fillStyle(col, state === 'locked' ? 0.22 : 0.45); g.fillCircle(n.x, n.y, 44);
+  g.lineStyle(4, state === 'active' ? 0xffffff : (state === 'defended' ? 0xffd700 : 0x333333), state === 'locked' ? 0.5 : 1);
+  g.strokeCircle(n.x, n.y, 44);
+  // mini castle
+  const s = 0x9a9aa6, sd = 0x6f6f7d;
+  g.fillStyle(state === 'locked' ? 0x555560 : sd, 1); g.fillRect(n.x - 26, n.y - 4, 52, 30);
+  g.fillStyle(state === 'locked' ? 0x6a6a76 : s, 1);  g.fillRect(n.x - 23, n.y - 4, 46, 30);
+  g.fillStyle(state === 'locked' ? 0x555560 : sd, 1);
+  for (let bx = n.x - 26; bx < n.x + 26; bx += 11) g.fillRect(bx, n.y - 12, 6, 8); // battlements
+  g.fillRect(n.x - 30, n.y - 18, 14, 44); g.fillRect(n.x + 16, n.y - 18, 14, 44); // towers
+  g.fillStyle(0x140a06, 1); g.fillRect(n.x - 6, n.y + 8, 12, 18); // gate
+  // labels
+  const nameTxt = scene.add.text(n.x, n.y + 56, f.name, {
+    fontSize: '15px', fontFamily: 'Arial Black', color: state === 'locked' ? '#777777' : f.color,
+    stroke: '#000', strokeThickness: 3
+  }).setOrigin(0.5).setDepth(11);
+  objs.push(nameTxt);
+
+  if (state === 'defended') {
+    const flag = scene.add.text(n.x, n.y - 60, '🚩', { fontSize: '24px' }).setOrigin(0.5).setDepth(12);
+    const chk = scene.add.text(n.x, n.y + 76, '✓ Conquered', { fontSize: '11px', color: '#ffd700' }).setOrigin(0.5).setDepth(11);
+    objs.push(flag, chk);
+  } else if (state === 'locked') {
+    const lock = scene.add.text(n.x, n.y, '🔒', { fontSize: '30px' }).setOrigin(0.5).setDepth(12);
+    objs.push(lock);
+  } else {
+    const tag = scene.add.text(n.x, n.y + 76, '▶ Defend!', { fontSize: '12px', fontFamily: 'Arial Black', color: '#ffffff' }).setOrigin(0.5).setDepth(11);
+    objs.push(tag);
+    scene.tweens.add({ targets: tag, alpha: 0.3, duration: 700, yoyo: true, repeat: -1 });
+    // pulsing ring
+    const ring = scene.add.circle(n.x, n.y, 50).setStrokeStyle(3, 0xffffff, 0.9).setDepth(9);
+    objs.push(ring);
+    scene.tweens.add({ targets: ring, scale: 1.18, alpha: 0.2, duration: 900, yoyo: true, repeat: -1 });
+  }
+  return objs;
+}
+
+function createWorldMap() {
+  const scene = this;
+  const W = 800, H = 600;
+
+  // Parchment background
+  const bg = scene.add.graphics();
+  bg.fillStyle(0x2a2018, 1); bg.fillRect(0, 0, W, H);
+  bg.fillStyle(0xc9a86a, 1); bg.fillRect(20, 20, W - 40, H - 40);
+  bg.fillStyle(0xbb9a58, 1);
+  for (let i = 0; i < 40; i++) { const x = 20 + Math.random()*(W-40), y = 20 + Math.random()*(H-40); bg.fillCircle(x, y, Math.random()*18+4); }
+  bg.lineStyle(6, 0x6a4a28, 1); bg.strokeRect(20, 20, W - 40, H - 40);
+
+  scene.add.text(W/2, 56, 'THE REALM', {
+    fontSize: '42px', fontFamily: 'Arial Black', color: '#4a2a12', stroke: '#c9a86a', strokeThickness: 2
+  }).setOrigin(0.5);
+  scene.add.text(W/2, 92, 'Choose the next land to defend', {
+    fontSize: '14px', fontFamily: 'monospace', color: '#5a3a1a'
+  }).setOrigin(0.5);
+
+  // Dotted trail: camp → land1 → land2 → land3
+  const pts = [MAP_CAMP, MAP_NODES.barbarian, MAP_NODES.undead, MAP_NODES.dark];
+  const trail = scene.add.graphics().setDepth(5);
+  trail.fillStyle(0x6a4a28, 0.9);
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i+1];
+    const dist = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
+    const steps = Math.floor(dist / 16);
+    for (let s = 0; s <= steps; s++) {
+      const t = s / steps;
+      trail.fillCircle(a.x + (b.x-a.x)*t, a.y + (b.y-a.y)*t, 3);
+    }
+  }
+
+  const active = firstUndefeatedLand();
+  // Draw each land node in its state
+  for (const land of LAND_ORDER) {
+    const state = landDefended[land] ? 'defended' : (land === active ? 'active' : 'locked');
+    const objs = drawLandNode(scene, land, state);
+    if (state === 'active') {
+      // make the node clickable
+      const n = MAP_NODES[land];
+      const hit = scene.add.circle(n.x, n.y, 52, 0xffffff, 0).setInteractive({ useHandCursor: true }).setDepth(13);
+      hit.on('pointerdown', () => {
+        hit.disableInteractive();
+        SFX.play('place_tower');
+        // walk the knight to this land, then open it
+        scene.tweens.add({
+          targets: knight, x: n.x - 4, y: n.y + 18, duration: 850, ease: 'Sine.inOut',
+          onComplete: () => { restartFaction = land; scene.scene.start('game'); }
+        });
+      });
+    }
+  }
+
+  // Knight token starts at the last conquered land (or the camp)
+  const conquered = LAND_ORDER.filter(l => landDefended[l]);
+  const start = conquered.length ? MAP_NODES[conquered[conquered.length - 1]] : MAP_CAMP;
+  const knight = makeKnightToken(scene);
+  knight.setPosition(start === MAP_CAMP ? start.x : start.x - 4, start === MAP_CAMP ? start.y : start.y + 18);
+  scene.tweens.add({ targets: knight, y: '-=4', duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+}
+
+// ── Ending cutscene ───────────────────────────────────────────
+function createEnding() {
+  const scene = this;
+  const W = 800, H = 600;
+
+  // Warm dawn sky
+  const sky = scene.add.graphics();
+  sky.fillGradientStyle(0x4a2a6a, 0x4a2a6a, 0xffb070, 0xffd9a0, 1);
+  sky.fillRect(0, 0, W, 420);
+  // sun rays
+  const sun = scene.add.graphics();
+  sun.fillStyle(0xfff2c0, 1); sun.fillCircle(400, 200, 70);
+  sun.fillStyle(0xfff2c0, 0.18); sun.fillCircle(400, 200, 130);
+  // ground
+  const ground = scene.add.graphics();
+  ground.fillStyle(0x3a6a2a, 1); ground.fillRect(0, 400, W, 200);
+  ground.fillStyle(0x2f5a22, 1); ground.fillRect(0, 440, W, 160);
+
+  // Flower arch
+  const arch = scene.add.graphics();
+  arch.lineStyle(14, 0x5a8a3a, 1); arch.beginPath();
+  arch.arc(400, 400, 120, Math.PI, 0, false); arch.strokePath();
+  for (let a = 0; a <= Math.PI; a += 0.22) {
+    const fx = 400 + Math.cos(Math.PI - a) * 120, fy = 400 - Math.sin(a) * 120;
+    const c = [0xff5577, 0xffcc44, 0xffffff, 0xaa66ff][Math.floor(Math.random()*4)];
+    arch.fillStyle(c, 1); arch.fillCircle(fx, fy, 8);
+  }
+
+  // Knight (left) and Princess (right), facing each other under the arch
+  const knight = makeKnightToken(scene);
+  knight.setScale(2.2).setPosition(345, 452);
+  const pr = scene.add.graphics().setDepth(30);
+  pr.fillStyle(0xe86aa0, 1); pr.fillTriangle(-16, 24, 16, 24, 0, -10);  // gown
+  pr.fillStyle(0xffd0e4, 1); pr.fillCircle(0, -16, 8);                   // head
+  pr.fillStyle(0xe86aa0, 1); pr.fillRect(-8, -26, 16, 8);                // hair top
+  pr.fillStyle(0xffd700, 1); pr.fillTriangle(-7, -24, 7, -24, 0, -34);   // crown
+  pr.setScale(2.0).setPosition(455, 442);
+
+  // Floating hearts rising between them
+  for (let i = 0; i < 14; i++) {
+    const heart = scene.add.text(400, 430, '❤', { fontSize: (12 + Math.random()*16) + 'px', color: '#ff4477' }).setOrigin(0.5).setDepth(40).setAlpha(0);
+    scene.tweens.add({
+      targets: heart, y: 300 + Math.random()*60, x: 360 + Math.random()*80, alpha: { from: 0.9, to: 0 },
+      duration: 2200 + Math.random()*1500, delay: i * 240, repeat: -1, ease: 'Sine.out'
+    });
+  }
+
+  // Cheering villagers along the bottom
+  const crowdColors = [0x4477cc, 0xcc7744, 0x44aa66, 0xaa4488, 0x8866cc, 0xccaa44];
+  for (let i = 0; i < 12; i++) {
+    const vx = 60 + i * 62, vy = 540;
+    const v = scene.add.graphics().setDepth(35);
+    const c = crowdColors[i % crowdColors.length];
+    v.fillStyle(c, 1); v.fillRoundedRect(-9, -6, 18, 26, 4);            // body
+    v.fillStyle(0xe0b89a, 1); v.fillCircle(0, -14, 7);                  // head
+    v.fillStyle(0x000000, 1); v.fillCircle(-2, -15, 1); v.fillCircle(2, -15, 1);
+    v.setPosition(vx, vy);
+    scene.tweens.add({ targets: v, y: vy - 14, duration: 360 + Math.random()*260, yoyo: true, repeat: -1, ease: 'Quad.out', delay: Math.random()*400 });
+  }
+
+  // Confetti falling
+  for (let i = 0; i < 50; i++) {
+    const c = [0xff5577, 0xffcc44, 0x44ccff, 0xffffff, 0xaa66ff, 0x66ff88][Math.floor(Math.random()*6)];
+    const conf = scene.add.rectangle(Math.random()*W, -20, 6, 10, c).setDepth(45);
+    scene.tweens.add({
+      targets: conf, y: H + 20, x: '+=' + (Math.random()*80 - 40), angle: Math.random()*720,
+      duration: 2600 + Math.random()*2600, delay: Math.random()*2500, repeat: -1, ease: 'Linear',
+      onRepeat: () => { conf.y = -20; conf.x = Math.random()*W; }
+    });
+  }
+
+  // Title text (appears after a beat)
+  const congrats = scene.add.text(W/2, 80, 'And they lived happily ever after...', {
+    fontSize: '20px', fontFamily: 'Arial Black', color: '#ffffff', stroke: '#5a2a2a', strokeThickness: 4
+  }).setOrigin(0.5).setDepth(50).setAlpha(0);
+  scene.tweens.add({ targets: congrats, alpha: 1, duration: 1200, delay: 600 });
+
+  const theEnd = scene.add.text(W/2, 150, 'THE END', {
+    fontSize: '64px', fontFamily: 'Arial Black', color: '#ffd700', stroke: '#5a2a2a', strokeThickness: 8
+  }).setOrigin(0.5).setDepth(50).setScale(0).setAlpha(0);
+  scene.tweens.add({ targets: theEnd, alpha: 1, scale: 1, duration: 900, delay: 1800, ease: 'Back.out' });
+
+  // Play Again button (after the cutscene settles)
+  const againBg = scene.add.rectangle(W/2, 225, 240, 46, 0x2a8a2a).setDepth(50).setAlpha(0).setStrokeStyle(3, 0xffd700);
+  const againTxt = scene.add.text(W/2, 225, '▶  Play Again', {
+    fontSize: '20px', fontFamily: 'Arial Black', color: '#ffffff', stroke: '#0a2a0a', strokeThickness: 3
+  }).setOrigin(0.5).setDepth(51).setAlpha(0);
+  scene.tweens.add({ targets: [againBg, againTxt], alpha: 1, duration: 800, delay: 2800 });
+  againBg.setInteractive({ useHandCursor: true });
+  againBg.on('pointerover', () => againBg.setFillStyle(0x33aa33));
+  againBg.on('pointerout',  () => againBg.setFillStyle(0x2a8a2a));
+  againBg.on('pointerdown', () => { SFX.play('wave_complete'); resetProgress(); scene.scene.start('title'); });
+
+  SFX.play('wave_complete');
+}
+
 // ── Phaser config ─────────────────────────────────────────────
 const config = {
   type: Phaser.AUTO,
@@ -1128,7 +1608,12 @@ const config = {
   height: 600,
   backgroundColor: '#2d5a27',
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: { preload, create, update }
+  scene: [
+    { key: 'title',    create: createTitle },
+    { key: 'worldmap', create: createWorldMap },
+    { key: 'game',     preload, create, update },
+    { key: 'ending',   create: createEnding },
+  ]
 };
 const game = new Phaser.Game(config);
 
@@ -1138,6 +1623,7 @@ let placedCells = new Set();
 let waveRoster = [];
 let spawnTimer = 0, spawnCount = 0, waveSize = 8;
 let gold = 150, wave = 1, waveActive = false;
+let gameOver = false; // true once the castle falls; guards showGameOver from firing repeatedly
 let lives = 20; // kept for compat — mirrors castleHP
 
 // ── Castle system ─────────────────────────────────────────────
@@ -1317,7 +1803,13 @@ function updateCastleHUD() {
 
 let castlePanel = null;
 let currentFaction = 'barbarian';
-let restartFaction = 'barbarian'; // set before scene.restart() so create() knows which land
+let restartFaction = 'barbarian'; // the land the game scene currently plays (set by the world map)
+
+// ── Land progression (world map) ──────────────────────────────
+const LAND_ORDER = ['barbarian', 'undead', 'dark'];
+let landDefended = { barbarian: false, undead: false, dark: false };
+function resetProgress() { landDefended = { barbarian: false, undead: false, dark: false }; }
+function firstUndefeatedLand() { return LAND_ORDER.find(l => !landDefended[l]) || null; }
 
 function showCastlePanel(scene) {
   if (castlePanel) { castlePanel.destroy(); castlePanel = null; return; }
@@ -1361,12 +1853,13 @@ function showCastlePanel(scene) {
 let selectedTowerType = null;
 let selectedTower = null;
 let movingTower = null;
+let movingTowerCharge = 0;  // gold charged to start the current move (refunded on cancel)
 let draggingTower = null;   // tower being freely dragged (pre-wave)
 let ghostGfx = null;        // hover preview ghost
 let ghostRing = null;
 let ghostIcon = null;
 let dragStartX = 0, dragStartY = 0; // pointer position at drag start
-const MOVE_COST = 50;       // gold cost to move a tower after wave 1 has started
+const MOVE_COST_PCT = 0.5;  // move cost = this fraction of the tower's total invested gold
 let interestTimer = 0;
 const INTEREST_INTERVAL = 10000, INTEREST_RATE = 0.02;
 
@@ -1377,13 +1870,14 @@ function refreshShop() {
   if (!scene_ref) return;
   for (const [key, entry] of Object.entries(scene_ref._shopBtns)) {
     const def = TOWER_TYPES[key];
-    const locked = wave <= def.unlockWave;
+    const mineUsed = key === 'mine' && towers.some(t => t.isMine);
+    const locked = localWave() < def.unlockWave || mineUsed;
     entry.bg.setFillStyle(locked ? 0x1a1a1a : 0x222244);
     entry.bg.setStrokeStyle(2, key === selectedTowerType && !locked ? 0xffd700 : (locked ? 0x333333 : 0x444466));
     entry.nameTxt.setColor(locked ? '#555555' : '#ffffff');
     entry.costTxt.setColor(locked ? '#554400' : '#ffd700');
     entry.descTxt.setColor(locked ? '#444444' : '#aaaaaa');
-    entry.lockTxt.setText(locked ? `🔒 Unlocks\nafter Wave ${def.unlockWave}` : '');
+    entry.lockTxt.setText(mineUsed ? '✓ Built' : (locked ? `🔒 Unlocks\nat Wave ${def.unlockWave}` : ''));
     // If selected tower just unlocked, keep selection; if locked, switch to arrow
     if (locked && selectedTowerType === key) selectedTowerType = null;
   }
@@ -1435,8 +1929,8 @@ function showGameOver(scene) {
   if (isNewBest) localStorage.setItem('td_best_wave', survived);
   const best = isNewBest ? survived : prev;
 
-  // Dark overlay
-  const overlay = scene.add.rectangle(400, 300, 800, 600, 0x000000, 0.75).setDepth(50);
+  // Dark overlay — interactive so clicks don't fall through to the board
+  const overlay = scene.add.rectangle(400, 300, 800, 600, 0x000000, 0.75).setDepth(50).setInteractive();
   scene.add.text(400, 160, 'GAME OVER', {
     fontSize: '64px', fontFamily: 'Arial Black', color: '#ff2200',
     stroke: '#000000', strokeThickness: 8
@@ -1473,7 +1967,10 @@ function showGameOver(scene) {
   }).setOrigin(0.5).setDepth(52);
   btn.on('pointerover', () => btn.setFillStyle(0xffec6e));
   btn.on('pointerout',  () => btn.setFillStyle(0xffd700));
+  let restarting = false;
   btn.on('pointerdown', () => {
+    if (restarting) return; // guard against double-fire
+    restarting = true;
     // Remember which land to restart from
     restartFaction = getFactionForWave(wave);
     // Reset all global game state so create() starts fresh
@@ -1481,7 +1978,7 @@ function showGameOver(scene) {
     for (const e of enemies) e.destroy();
     enemies = []; towers = []; projectiles = []; placedCells = new Set(); waveRoster = [];
     wave = FACTIONS[restartFaction].waves[0];
-    gold = 150; waveActive = false; spawnCount = 0; spawnTimer = 0; waveSize = 8;
+    gold = 150; waveActive = false; gameOver = false; spawnCount = 0; spawnTimer = 0; waveSize = 8;
     castleLevel = 0; castleHP = CASTLE_LEVELS[0].maxHP; castleMaxHP = CASTLE_LEVELS[0].maxHP;
     scene.scene.restart();
   });
@@ -1496,30 +1993,47 @@ function selectTower(tower) {
 }
 
 function startMove(tower) {
-  if (waveActive || wave > 1) {
-    // Post-wave: charge gold
-    if (gold < MOVE_COST) {
-      statusText.setText('Not enough gold to move! (50g)');
+  movingTowerCharge = 0;
+  if (waveActive || localWave() > 1) {
+    // Post-wave: charge a fraction of the tower's invested value
+    const cost = tower.moveCost();
+    if (gold < cost) {
+      statusText.setText(`Not enough gold to move! (${cost}g)`);
       scene_ref.time.delayedCall(1500, () => statusText.setText(''));
       SFX.play('not_enough_gold');
       return;
     }
-    gold -= MOVE_COST;
+    gold -= cost;
+    movingTowerCharge = cost;
     goldText.setText('💰 Gold: ' + gold);
   }
   movingTower = tower;
   if (!tower.isDragon && !tower.isTitan) tower.base.setFillStyle(0xff9900);
-  statusText.setText('Click an empty cell to move the tower');
+  // Hide the panel so it doesn't block the board, and show the move ghost immediately
+  upgradePanel.hide();
+  selectedTower = tower; // keep the tower logically selected during the move
+  statusText.setText('Click a cell to move  ·  Esc to cancel');
 }
 
 function cancelMove() {
   if (!movingTower) return;
-  if (!movingTower.isDragon && !movingTower.isTitan) movingTower.base.setFillStyle(movingTower.baseDef.color);
-  if (movingTower.isDragon) movingTower.redrawDragon(globalUpgradeTier());
-  if (movingTower.isTitan)  movingTower.redrawTitan();
+  const tower = movingTower;
+  // Refund the charge — no move actually happened
+  if (movingTowerCharge > 0) {
+    gold += movingTowerCharge;
+    goldText.setText('💰 Gold: ' + gold);
+  }
+  movingTowerCharge = 0;
+  if (!tower.isDragon && !tower.isTitan) tower.base.setFillStyle(tower.baseDef.color);
+  if (tower.isDragon) tower.redrawDragon(globalUpgradeTier());
+  if (tower.isTitan)  tower.redrawTitan();
   movingTower = null;
+  clearGhost();
   statusText.setText('');
-  if (upgradePanel) upgradePanel.refresh();
+  // Re-open the panel on the tower so the player can keep managing it
+  selectedTower = tower;
+  tower.setSelected(true);
+  upgradePanel.show(tower);
 }
 
 function doMove(cx, cy) {
@@ -1541,16 +2055,34 @@ function doMove(cx, cy) {
   if (!movingTower.isDragon && !movingTower.isTitan) movingTower.base.setFillStyle(movingTower.baseDef.color);
   if (movingTower.isDragon) movingTower.redrawDragon(globalUpgradeTier());
   if (movingTower.isTitan)  movingTower.redrawTitan();
-  movingTower.setSelected(true);
+  const tower = movingTower;
+  tower.setSelected(true);
   statusText.setText('');
   movingTower = null;
-  if (upgradePanel) upgradePanel.refresh();
+  movingTowerCharge = 0;
+  clearGhost();
+  SFX.play('place_tower');
+  // Re-open the panel on the tower at its new spot
+  selectedTower = tower;
+  upgradePanel.show(tower);
 }
 
 function preload() {}
 
 function create() {
   scene_ref = this;
+  // Fresh state every time a land is entered (the previous scene's objects are already destroyed)
+  enemies = []; towers = []; projectiles = []; placedCells = new Set(); waveRoster = [];
+  spawnCount = 0; spawnTimer = 0; waveSize = 8; waveActive = false; countdownActive = false;
+  selectedTower = null; selectedTowerType = null; movingTower = null; movingTowerCharge = 0;
+  draggingTower = null; castlePanel = null; interestTimer = 0;
+  gameOver = false;
+  castleLevel = 0; castleMaxHP = CASTLE_LEVELS[0].maxHP; castleHP = castleMaxHP; lives = castleHP;
+  wave = FACTIONS[restartFaction].waves[0]; // start at the first wave of the land being played
+  gold = diffMode().gold; // starting gold depends on chosen difficulty
+  // Clear stale HUD references from any previous scene — they point to destroyed
+  // objects after scene.restart(), and drawMap()→drawCastle() runs before they're rebuilt.
+  castleHPBar = null; castleHPBg = null; castleHPText = null; castleNameText = null;
   drawMap(this, restartFaction);
 
   // ── Tower shop bar at bottom ──
@@ -1574,18 +2106,23 @@ function create() {
     const nameTxt  = this.add.text(bx - 24, shopY - 14, def.label,            { fontSize: '11px', fontFamily: 'Arial Black', color: locked ? '#555555' : '#ffffff' }).setOrigin(0, 0.5).setDepth(11);
     const costTxt  = this.add.text(bx - 44, shopY + 4,  '💰' + def.cost,      { fontSize: '10px', color: locked ? '#554400' : '#ffd700' }).setOrigin(0, 0.5).setDepth(11);
     const descTxt  = this.add.text(bx - 44, shopY + 20, def.desc,             { fontSize: '9px',  color: locked ? '#444444' : '#aaaaaa' }).setOrigin(0, 0.5).setDepth(11);
-    const lockTxt  = this.add.text(bx,      shopY,      locked ? `🔒 Unlocks\nafter Wave ${def.unlockWave}` : '', { fontSize: '10px', color: '#888800', align: 'center' }).setOrigin(0.5).setDepth(12);
+    const lockTxt  = this.add.text(bx,      shopY,      locked ? `🔒 Unlocks\nat Wave ${def.unlockWave}` : '', { fontSize: '10px', color: '#888800', align: 'center' }).setOrigin(0.5).setDepth(12);
 
     bg.on('pointerdown', () => {
-      if (wave <= def.unlockWave) return; // still locked
+      if (localWave() < def.unlockWave) return; // still locked
+      if (key === 'mine' && towers.some(t => t.isMine)) {  // mine already built
+        statusText.setText('Only one mine allowed!');
+        this.time.delayedCall(1500, () => statusText.setText(''));
+        return;
+      }
       selectedTowerType = key;
       for (const [k, entry] of Object.entries(this._shopBtns)) {
-        const isLocked = TOWER_TYPES[k].unlockWave >= wave;
+        const isLocked = localWave() < TOWER_TYPES[k].unlockWave;
         entry.bg.setStrokeStyle(2, k === selectedTowerType ? 0xffd700 : (isLocked ? 0x333333 : 0x444466));
       }
     });
-    bg.on('pointerover', () => { if (wave > def.unlockWave) bg.setFillStyle(0x333366); });
-    bg.on('pointerout',  () => { bg.setFillStyle(wave <= def.unlockWave ? 0x1a1a1a : 0x222244); });
+    bg.on('pointerover', () => { if (localWave() >= def.unlockWave) bg.setFillStyle(0x333366); });
+    bg.on('pointerout',  () => { bg.setFillStyle(localWave() < def.unlockWave ? 0x1a1a1a : 0x222244); });
 
     this._shopBtns[key] = { bg, iconTxt, nameTxt, costTxt, descTxt, lockTxt };
     bx += btnW + gap;
@@ -1600,11 +2137,13 @@ function create() {
     const cy = Math.floor(ptr.y / CELL);
     const key = `${cx},${cy}`;
 
-    // Paid move mode (post-wave): drop tower on valid cell
+    // Move mode: drop tower on a valid cell, or cancel by clicking its own cell
     if (movingTower) {
-      if (PATH_CELLS.has(key) || (placedCells.has(key) && key !== `${movingTower.cx},${movingTower.cy}`)) {
+      const origKey = `${movingTower.cx},${movingTower.cy}`;
+      if (key === origKey) { cancelMove(); return; } // clicked where it already is → cancel + refund
+      if (PATH_CELLS.has(key) || placedCells.has(key)) {
         statusText.setText("Can't place there!");
-        this.time.delayedCall(1200, () => { if (movingTower) statusText.setText('Click an empty cell to move the tower'); });
+        this.time.delayedCall(1200, () => { if (movingTower) statusText.setText('Click a cell to move  ·  Esc to cancel'); });
         return;
       }
       doMove(cx, cy);
@@ -1638,6 +2177,14 @@ function create() {
     if (PATH_CELLS.has(key)) return;
     if (!selectedTowerType) return;   // nothing selected — require explicit shop pick
     const def = TOWER_TYPES[selectedTowerType];
+    // Only one mine allowed per land
+    if (selectedTowerType === 'mine' && towers.some(t => t.isMine)) {
+      statusText.setText('Only one mine allowed!');
+      this.time.delayedCall(1500, () => statusText.setText(''));
+      SFX.play('not_enough_gold');
+      deselectShop();
+      return;
+    }
     if (gold < def.cost) {
       statusText.setText('Not enough gold!');
       this.time.delayedCall(1500, () => statusText.setText(''));
@@ -1649,6 +2196,7 @@ function create() {
     placedCells.add(key);
     towers.push(new Tower(this, cx, cy, selectedTowerType));
     deselectShop();   // clear selection — player must pick again to place another
+    refreshShop();    // update locked states (e.g. mine now used up)
     SFX.play('place_tower');
   });
 
@@ -1664,6 +2212,7 @@ function create() {
     }
     // Ghost preview: show where the selected tower type would land
     if (ptr.y < HUD_H || ptr.y > 520) { clearGhost(); return; }
+    if (movingTower) { drawMoveGhostAt(ptr.x, ptr.y); return; }
     drawGhostAt(ptr.x, ptr.y);
   });
 
@@ -1734,29 +2283,18 @@ function create() {
   // Clear ghost whenever the pointer leaves the canvas
   this.input.on('pointerout', () => clearGhost());
 
-  // Dev shortcut: ] skips to the start of the next land (testing only)
+  // Esc cancels an in-progress tower move (refunds the charge)
+  this.input.keyboard.on('keydown-ESC', () => {
+    if (movingTower) cancelMove();
+  });
+
+  // Dev shortcut: ] instantly wins the current land (testing only)
   this.input.keyboard.on('keydown-CLOSED_BRACKET', () => {
-    if (waveActive) return;
-    const cur = getFactionForWave(wave);
-    const factions = Object.keys(FACTIONS);
-    const idx = factions.indexOf(cur);
-    if (idx === -1 || idx === factions.length - 1) return; // already on last land
-    const nextFaction = factions[idx + 1];
-    const prevFaction = cur;
-    const prevWave = wave;
-    wave = FACTIONS[nextFaction].waves[0];
-    waveText.setText('Wave: ' + localWave());
-    for (const t of towers) t.destroy();
-    towers = []; placedCells = new Set();
-    gold = 150; goldText.setText('💰 Gold: ' + gold);
-    castleLevel = 0; castleMaxHP = CASTLE_LEVELS[0].maxHP; castleHP = castleMaxHP; lives = castleHP;
-    drawMap(this, nextFaction);
-    if (factionText) { const nf = FACTIONS[nextFaction]; factionText.setText(nf.name).setColor(nf.color); }
-    if (landText) { const nf = FACTIONS[nextFaction]; landText.setText(nf.name).setColor(nf.color); }
-    refreshShop();
-    statusText.setText('');
-    this._waveBtn.setFillStyle(0xffd700).setInteractive();
-    this._waveBtnText.setText('Start Wave');
+    if (gameOver) return;
+    waveActive = false;
+    for (const e of enemies) e.destroy();
+    enemies = [];
+    showLandComplete(this, getFactionForWave(wave));
   });
 
   // Start Wave button
@@ -1774,78 +2312,43 @@ function clearGhost() {
   if (ghostIcon) ghostIcon.setVisible(false);
 }
 
-function showLandComplete(scene, fromFaction, toFaction) {
+function showLandComplete(scene, fromFaction) {
+  landDefended[fromFaction] = true; // mark this land conquered
   const from = FACTIONS[fromFaction];
-  const to   = toFaction ? FACTIONS[toFaction] : null;
+  const idx = LAND_ORDER.indexOf(fromFaction);
+  const isLast = idx === LAND_ORDER.length - 1;
   const objs = [];
   const track = o => { objs.push(o); return o; };
 
   track(scene.add.rectangle(400, 283, 800, 566, 0x000000, 0.90).setDepth(60).setInteractive());
 
-  const titleTxt = to ? '🏰  Castle Defended!' : '👑  Realm Saved!';
-  track(scene.add.text(400, 160, titleTxt, {
-    fontSize: '48px', fontFamily: 'Arial Black', color: '#ffd700',
+  const titleTxt = isLast ? '👑  The Realm is Saved!' : '🏰  Castle Defended!';
+  track(scene.add.text(400, 170, titleTxt, {
+    fontSize: '46px', fontFamily: 'Arial Black', color: '#ffd700',
     stroke: '#000', strokeThickness: 8
   }).setOrigin(0.5).setDepth(61));
 
-  track(scene.add.text(400, 248, `You saved the castle from the ${from.name}!`, {
+  track(scene.add.text(400, 250, `You saved the castle from the ${from.name}!`, {
     fontSize: '22px', color: from.color, stroke: '#000', strokeThickness: 4
   }).setOrigin(0.5).setDepth(61));
 
-  if (to) {
-    track(scene.add.text(400, 300, `But a new threat stirs in the ${to.name}...`, {
-      fontSize: '17px', color: '#aaaaaa', stroke: '#000', strokeThickness: 3
-    }).setOrigin(0.5).setDepth(61));
-    track(scene.add.text(400, 334, 'Your towers will be dismantled. Start fresh with 150 gold.', {
-      fontSize: '13px', color: '#888888', stroke: '#000', strokeThickness: 2
-    }).setOrigin(0.5).setDepth(61));
-  } else {
-    track(scene.add.text(400, 300, 'All three lands are free. The realm is at peace!', {
-      fontSize: '18px', color: '#aaffaa', stroke: '#000', strokeThickness: 3
-    }).setOrigin(0.5).setDepth(61));
-  }
+  track(scene.add.text(400, 300, isLast
+      ? 'All three lands are free. Ride home to your reward...'
+      : 'The knight returns to the map to choose his next quest.', {
+    fontSize: '15px', color: '#cccccc', stroke: '#000', strokeThickness: 3
+  }).setOrigin(0.5).setDepth(61));
 
-  const btnLabel = to ? `March to the ${to.name}  →` : '🏆  Play Again';
-  const btn = track(scene.add.rectangle(400, 408, 310, 54, 0x225522).setDepth(61).setInteractive());
-  track(scene.add.text(400, 408, btnLabel, {
+  const btnLabel = isLast ? 'See your reward  →' : 'Return to the Map  →';
+  const btn = track(scene.add.rectangle(400, 400, 320, 54, 0x225522).setDepth(61).setInteractive({ useHandCursor: true }));
+  track(scene.add.text(400, 400, btnLabel, {
     fontSize: '20px', fontFamily: 'Arial Black', color: '#aaffaa',
     stroke: '#000', strokeThickness: 4
   }).setOrigin(0.5).setDepth(62));
   btn.on('pointerover', () => btn.setFillStyle(0x338833));
   btn.on('pointerout',  () => btn.setFillStyle(0x225522));
-
   btn.on('pointerdown', () => {
     objs.forEach(o => o.destroy());
-
-    if (to) {
-      // Transition to next land
-      for (const t of towers) t.destroy();
-      towers = []; placedCells = new Set();
-      gold = 150; goldText.setText('💰 Gold: ' + gold);
-      castleLevel = 0; castleMaxHP = CASTLE_LEVELS[0].maxHP;
-      castleHP = castleMaxHP; lives = castleHP;
-      drawMap(scene, toFaction);
-      if (factionText) factionText.setText(to.name).setColor(to.color);
-      if (landText)    landText.setText(to.name).setColor(to.color);
-      waveText.setText('Wave: ' + localWave());
-      refreshShop();
-      statusText.setText('');
-      scene._waveBtn.setFillStyle(0xffd700).setInteractive();
-      scene._waveBtnText.setText('Start Wave');
-      scene._waveBtn.on('pointerover', () => scene._waveBtn.setFillStyle(0xffec6e));
-      scene._waveBtn.on('pointerout',  () => scene._waveBtn.setFillStyle(0xffd700));
-      scene._waveBtn.on('pointerdown', () => startWaveWithCountdown(scene));
-    } else {
-      // Final victory — restart from the beginning
-      restartFaction = 'barbarian';
-      for (const t of towers) t.destroy();
-      for (const e of enemies) e.destroy();
-      enemies = []; towers = []; projectiles = []; placedCells = new Set(); waveRoster = [];
-      wave = 1; gold = 150; waveActive = false;
-      spawnCount = 0; spawnTimer = 0; waveSize = 8;
-      castleLevel = 0; castleHP = CASTLE_LEVELS[0].maxHP; castleMaxHP = CASTLE_LEVELS[0].maxHP;
-      scene.scene.restart();
-    }
+    scene.scene.start(isLast ? 'ending' : 'worldmap');
   });
 }
 
@@ -1854,7 +2357,7 @@ function deselectShop() {
   clearGhost();
   if (scene_ref && scene_ref._shopBtns) {
     for (const [k, entry] of Object.entries(scene_ref._shopBtns)) {
-      const locked = TOWER_TYPES[k].unlockWave >= wave;
+      const locked = localWave() < TOWER_TYPES[k].unlockWave;
       entry.bg.setStrokeStyle(2, locked ? 0x333333 : 0x444466);
     }
   }
@@ -1893,6 +2396,37 @@ function drawGhostAt(px, py) {
 
   // Icon
   ghostIcon.setText(def.icon || '').setPosition(cellX, cellY).setVisible(true);
+}
+
+// Ghost preview while relocating an existing tower (move mode)
+function drawMoveGhostAt(px, py) {
+  if (!ghostGfx || !movingTower) { clearGhost(); return; }
+  const cx = Math.floor(px / CELL);
+  const cy = Math.floor(py / CELL);
+  const key = `${cx},${cy}`;
+  const cellX = cx * CELL + CELL / 2;
+  const cellY = cy * CELL + CELL / 2;
+
+  const origKey  = `${movingTower.cx},${movingTower.cy}`;
+  const onPath   = PATH_CELLS.has(key);
+  const occupied = placedCells.has(key) && key !== origKey;
+  const invalid  = onPath || occupied;
+
+  // Cell highlight (green = valid drop, red = blocked)
+  ghostGfx.clear();
+  ghostGfx.fillStyle(invalid ? 0xff2200 : 0x44ff88, 1);
+  ghostGfx.fillRect(cx * CELL + 2, cy * CELL + 2, CELL - 4, CELL - 4);
+  ghostGfx.lineStyle(2, invalid ? 0xff4400 : 0x00ff66, 1);
+  ghostGfx.strokeRect(cx * CELL + 2, cy * CELL + 2, CELL - 4, CELL - 4);
+
+  // Range ring at the prospective location
+  ghostRing.clear();
+  if (!invalid && movingTower.range > 0) {
+    ghostRing.lineStyle(1, 0xffffff, 1);
+    ghostRing.strokeCircle(cellX, cellY, movingTower.range);
+  }
+
+  ghostIcon.setText(movingTower.baseDef.icon || '').setPosition(cellX, cellY).setVisible(true);
 }
 
 // Holds graphics objects for the current map so they can be destroyed on transition
@@ -2079,12 +2613,6 @@ function drawMap(scene, factionKey) {
   currentPath.slice(1).forEach(p => pg.lineTo(p.x, p.y));
   pg.strokePath();
 
-  // ── Start marker ──
-  const startPt = currentPath[0];
-  const mS = scene.add.circle(startPt.x === 0 ? 20 : startPt.x, startPt.y, 12, 0x00cc44).setDepth(4);
-  const mSt = scene.add.text(startPt.x === 0 ? 20 : startPt.x, startPt.y, 'S', { fontSize: '10px', color: '#fff' }).setOrigin(0.5).setDepth(4);
-  mapGraphicsGroup.push(mS, mSt);
-
   // Draw the castle at the path end
   currentFaction = factionKey;
   drawCastle(scene, factionKey);
@@ -2135,7 +2663,8 @@ function update(time, delta) {
       drawCastle(this, currentFaction);
       screenShake(this, dmg >= 4 ? 14 : 6, dmg >= 4 ? 600 : 300);
       SFX.play(dmg >= 4 ? 'boss_breach' : 'enemy_die');
-      if (castleHP <= 0) {
+      if (castleHP <= 0 && !gameOver) {
+        gameOver = true;
         waveActive = false;
         SFX.play('game_over');
         showGameOver(this);
@@ -2171,23 +2700,20 @@ function update(time, delta) {
     refreshShop();
     SFX.play('wave_complete');
 
-    // Detect faction change (end of a land)
+    // Detect end of the current land (its final wave was just cleared)
     const prevFaction = getFactionForWave(prevWave);
-    const nextFaction = getFactionForWave(wave);
-    const factionKeys = Object.keys(FACTIONS);
-    const isLastLand  = prevFaction === factionKeys[factionKeys.length - 1];
     const isLandEnd   = prevWave === FACTIONS[prevFaction].waves[1];
 
     if (isLandEnd) {
-      // Disable wave button until player clicks through the overlay
+      // Disable wave button and show the land-complete overlay → returns to the world map
       this._waveBtn.removeInteractive();
       this._waveBtnText.setText('...');
-      showLandComplete(scene_ref, prevFaction, isLastLand ? null : nextFaction);
+      showLandComplete(scene_ref, prevFaction);
       return;
     }
 
     // Normal wave complete
-    const justUnlocked = Object.entries(TOWER_TYPES).filter(([,d]) => d.unlockWave === prevWave);
+    const justUnlocked = Object.entries(TOWER_TYPES).filter(([,d]) => d.unlockWave === localWave(wave));
     const unlockMsg = justUnlocked.length ? ' 🔓 ' + justUnlocked.map(([,d]) => d.label).join(' & ') + ' unlocked!' : '';
     statusText.setText('Wave Complete!' + unlockMsg);
     if (justUnlocked.length) SFX.play('unlock');
