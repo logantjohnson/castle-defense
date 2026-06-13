@@ -1645,7 +1645,7 @@ function create() {
       return;
     }
     // Ghost preview: show where the selected tower type would land
-    if (ptr.y < HUD_H || ptr.y > 520 || waveActive) { clearGhost(); return; }
+    if (ptr.y < HUD_H || ptr.y > 520) { clearGhost(); return; }
     drawGhostAt(ptr.x, ptr.y);
   });
 
