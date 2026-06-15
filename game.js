@@ -85,9 +85,9 @@ const FACTIONS = {
 // hpMult/countMult/rewardMult scale enemy strength, numbers, and payout.
 // gold = starting gold per land. These are first-pass values; tuned in the balance pass.
 const DIFFICULTY_MODES = {
-  easy:   { name: 'Easy',   color: '#55cc55', hpMult: 0.75, countMult: 0.80, rewardMult: 1.15, gold: 225, blurb: 'A relaxed defense' },
-  normal: { name: 'Normal', color: '#ffd700', hpMult: 1.00, countMult: 1.00, rewardMult: 1.00, gold: 150, blurb: 'The intended challenge' },
-  hard:   { name: 'Hard',   color: '#ff8822', hpMult: 1.30, countMult: 1.10, rewardMult: 0.95, gold: 150, blurb: 'For seasoned defenders' },
+  easy:   { name: 'Easy',   color: '#55cc55', hpMult: 0.75, countMult: 0.80, rewardMult: 1.15, gold: 250, blurb: 'A relaxed defense' },
+  normal: { name: 'Normal', color: '#ffd700', hpMult: 1.00, countMult: 1.00, rewardMult: 1.00, gold: 200, blurb: 'The intended challenge' },
+  hard:   { name: 'Hard',   color: '#ff8822', hpMult: 1.30, countMult: 1.10, rewardMult: 0.95, gold: 200, blurb: 'For seasoned defenders' },
   heroic: { name: 'Heroic', color: '#ff3333', hpMult: 1.65, countMult: 1.20, rewardMult: 0.90, gold: 150, blurb: 'Only the bravest knights' },
 };
 let currentDifficulty = 'normal';
