@@ -76,8 +76,8 @@ const TOWER_TYPES = {
 
 // ── Enemy factions & types ────────────────────────────────────
 const FACTIONS = {
-  barbarian: { name: 'Desert Wastes',   color: '#cc3300', waves: [1,20],  difficulty: 1.00 },
-  undead:    { name: 'Haunted Forest',  color: '#44aaaa', waves: [21,40], difficulty: 1.18 },
+  barbarian: { name: 'Desert Oasis',    color: '#cc3300', waves: [1,20],  difficulty: 1.00 },
+  undead:    { name: 'Mystical Forest', color: '#44aaaa', waves: [21,40], difficulty: 1.18 },
   dark:      { name: 'Volcanic Peaks',  color: '#9933cc', waves: [41,60], difficulty: 1.38 },
 };
 
@@ -105,6 +105,7 @@ const ENEMY_TYPES = {
   ogre:           { label:'Ogre',           faction:'barbarian', color:0xcc6600, size:32, speedMult:0.7, hpMult:3.0,  reward:40,  lives:2, wave:6,  shape:'square'                    },
   troll:          { label:'Troll',          faction:'barbarian', color:0x336633, size:30, speedMult:0.8, hpMult:4.0,  reward:50,  lives:2, wave:9,  shape:'circle'                    },
   cyclops:        { label:'CYCLOPS',        faction:'barbarian', color:0xaa2200, size:44, speedMult:0.5, hpMult:9.0,  reward:120, lives:4, wave:13, shape:'diamond'                   },
+  iron_golem:     { label:'IRON GOLEM',     faction:'barbarian', color:0x7a7a82, size:42, speedMult:0.42,hpMult:11.0, reward:130, lives:4, wave:13, shape:'square',  noPrefix:true    },
   warchief:       { label:'ORC WARCHIEF',   faction:'barbarian', color:0xcc1100, size:40, speedMult:0.5, hpMult:8.0,  reward:80,  lives:4, wave:10, shape:'diamond', bossOnly:true    },
   barbarian_king: { label:'BARBARIAN KING', faction:'barbarian', color:0xff2200, size:52, speedMult:0.38,hpMult:20.0, reward:200, lives:6, wave:20, shape:'diamond', bossOnly:true    },
 
@@ -115,6 +116,7 @@ const ENEMY_TYPES = {
   vampire:    { label:'Vampire',     faction:'undead', color:0x880022, size:24, speedMult:1.7, hpMult:2.4,  reward:38,  lives:1, wave:26, shape:'diamond'                  },
   lich:       { label:'Lich',        faction:'undead', color:0x553388, size:28, speedMult:0.9, hpMult:5.5,  reward:70,  lives:2, wave:29, shape:'square'                   },
   bonedragon: { label:'BONE DRAGON', faction:'undead', color:0xeeeedd, size:46, speedMult:0.6, hpMult:13.0, reward:160, lives:5, wave:33, shape:'diamond'                  },
+  bone_colossus:{label:'BONE COLOSSUS',faction:'undead',color:0xddddc8, size:44, speedMult:0.42,hpMult:14.0, reward:150, lives:4, wave:33, shape:'square', noPrefix:true     },
   lich_lord:  { label:'LICH LORD',   faction:'undead', color:0x4400aa, size:40, speedMult:0.5, hpMult:9.0,  reward:80,  lives:4, wave:30, shape:'diamond', bossOnly:true   },
   death_lord: { label:'DEATH LORD',  faction:'undead', color:0x0011aa, size:52, speedMult:0.38,hpMult:23.0, reward:200, lives:6, wave:40, shape:'diamond', bossOnly:true   },
 
@@ -125,6 +127,7 @@ const ENEMY_TYPES = {
   minotaur:     { label:'Minotaur',     faction:'dark', color:0x553300, size:32, speedMult:0.9, hpMult:5.2,  reward:55,  lives:2, wave:46, shape:'square'                 },
   hydra:        { label:'Hydra',        faction:'dark', color:0x224422, size:36, speedMult:0.7, hpMult:8.5,  reward:90,  lives:3, wave:49, shape:'circle'                 },
   blackdragon:  { label:'BLACK DRAGON', faction:'dark', color:0x110011, size:50, speedMult:0.65,hpMult:20.0, reward:250, lives:6, wave:53, shape:'diamond'                },
+  magma_titan:  { label:'MAGMA TITAN',  faction:'dark', color:0x3a2020, size:46, speedMult:0.4, hpMult:20.0, reward:180, lives:5, wave:53, shape:'square',  noPrefix:true },
   shadow_demon: { label:'SHADOW DEMON', faction:'dark', color:0x440033, size:40, speedMult:0.5, hpMult:10.0, reward:80,  lives:4, wave:50, shape:'diamond', bossOnly:true },
   demon_lord:   { label:'DEMON LORD',   faction:'dark', color:0x880000, size:52, speedMult:0.38,hpMult:27.0, reward:200, lives:6, wave:60, shape:'diamond', bossOnly:true },
 };
@@ -141,6 +144,13 @@ function localWave(w) {
   w = w ?? wave;
   return w - FACTIONS[getFactionForWave(w)].waves[0] + 1;
 }
+
+// ── Elite (second-half) enemies: after the mini-boss falls (local wave 10),
+// the land's lord sends tougher, armored reinforcements for waves 11-20.
+const ELITE_PREFIX = { barbarian: 'Iron', undead: 'Cursed', dark: 'Infernal' };
+function isEliteWave(w) { return localWave(w) >= 11; }
+// Extra HP multiplier for elites: ~+35% at wave 11 ramping to ~+98% at wave 20.
+function eliteHpFactor(w) { const lw = localWave(w); return lw >= 11 ? 1.35 + (lw - 11) * 0.07 : 1; }
 
 function buildWaveRoster(wave) {
   const faction = getFactionForWave(wave);
@@ -172,6 +182,15 @@ function buildWaveRoster(wave) {
   const boss = Object.entries(ENEMY_TYPES).find(([,d]) => d.bossOnly && d.wave === wave);
   if (boss) roster.push(boss[0]);
   return roster;
+}
+
+// Armored "iron" overlay drawn on top of elite (second-half) enemies
+function drawIronArmor(g, size) {
+  const r = size * 0.55;
+  g.fillStyle(0x9aa4b4, 0.28); g.fillCircle(0, 0, r);          // steel sheen
+  g.lineStyle(2.5, 0xdce4f0, 0.95); g.strokeCircle(0, 0, r);   // bright armor ring
+  g.fillStyle(0xeef4fc, 0.95);                                  // rivets
+  for (let a = 0; a < 6; a++) { const ang = a / 6 * Math.PI * 2; g.fillCircle(Math.cos(ang) * r, Math.sin(ang) * r, 1.6); }
 }
 
 // ── Enemy sprite drawing ──────────────────────────────────────
@@ -377,6 +396,37 @@ function drawEnemySprite(g, type) {
       g.fillStyle(0x440000); g.fillRect(-14,-6,4,14); g.fillRect(11,-6,4,14); // legs
       break;
 
+    // ── ELITE APEX UNITS (wave 13) ─────────────────────────────
+    case 'iron_golem':
+      g.fillStyle(0x55555c); g.fillRect(-19,-9,6,22); g.fillRect(13,-9,6,22);  // arms
+      g.fillStyle(c);        g.fillRect(-15,-17,30,32);     // body block
+      g.fillStyle(0x8a8a94); g.fillRect(-15,-17,30,7);      // shoulder highlight
+      g.fillStyle(0x44444a); g.fillRect(-15,11,30,4);       // belt
+      g.fillStyle(0xff7a1a); g.fillRect(-9,-9,6,5); g.fillRect(3,-9,6,5);  // glowing eyes
+      g.fillStyle(0x2a2a30); g.fillRect(-8,1,16,3);         // mouth grate
+      g.fillStyle(0x55555c); g.fillRect(-12,15,9,6); g.fillRect(3,15,9,6);  // feet
+      break;
+
+    case 'bone_colossus':
+      g.fillStyle(c);        g.fillRect(-18,-8,7,20); g.fillRect(11,-8,7,20); // arms
+      g.fillStyle(c);        g.fillRect(-15,-10,30,24);     // ribcage block
+      g.fillStyle(0x2a2820); g.fillRect(-12,-6,24,2); g.fillRect(-12,-1,24,2); g.fillRect(-12,4,24,2); g.fillRect(-12,9,24,2); // rib gaps
+      g.fillStyle(c);        g.fillRect(-2,-10,4,24);       // spine
+      g.fillStyle(c);        g.fillCircle(0,-18,10);        // skull
+      g.fillStyle(0x000000); g.fillCircle(-4,-19,3); g.fillCircle(4,-19,3); // sockets
+      g.fillStyle(0x66ff88); g.fillCircle(-4,-19,1.3); g.fillCircle(4,-19,1.3); // glow
+      g.fillStyle(0x000000); g.fillRect(-2,-13,4,3);        // nasal
+      break;
+
+    case 'magma_titan':
+      g.fillStyle(0x241414); g.fillRect(-20,-10,6,22); g.fillRect(14,-10,6,22); // arms
+      g.fillStyle(c);        g.fillRect(-17,-17,34,33);     // rock body
+      g.fillStyle(0xff4400); g.fillRect(-11,-13,3,26); g.fillRect(5,-9,3,22); g.fillRect(-2,-15,2,30); // lava cracks
+      g.fillStyle(0xff8800); g.fillRect(-9,-3,5,5); g.fillRect(5,-3,5,5);  // glowing eyes
+      g.fillStyle(0xffaa00); g.fillRect(-17,9,34,4);        // molten underbelly
+      g.fillStyle(0x241414); g.fillRect(-13,16,9,6); g.fillRect(4,16,9,6);  // feet
+      break;
+
     // ── MINI BOSSES ────────────────────────────────────────────
     case 'warchief':
       g.fillStyle(0x885500); g.fillRect(-20,-28,40,20);     // iron helmet
@@ -494,7 +544,11 @@ class Enemy {
     this.waypointIndex = 1;
     const landDiff = FACTIONS[getFactionForWave(wave)].difficulty;
     const mode = diffMode();
-    const hp = Math.floor(BASE_HP * def.hpMult * landDiff * mode.hpMult * (1 + localWave(wave) * 0.22));
+    // Elite reinforcements (waves 11-20) get an extra HP bump — bosses excluded
+    const elite = isEliteWave(wave) && !def.bossOnly;
+    this.elite = elite;
+    const eliteMul = elite ? eliteHpFactor(wave) : 1;
+    const hp = Math.floor(BASE_HP * def.hpMult * landDiff * mode.hpMult * eliteMul * (1 + localWave(wave) * 0.22));
     this.maxHp = hp; this.hp = hp;
     this.speed = BASE_SPEED * def.speedMult;
     this.reward = Math.floor(def.reward * mode.rewardMult);
@@ -506,12 +560,15 @@ class Enemy {
     // Container holds all sprite graphics and moves as one unit
     const g = scene.add.graphics();
     drawEnemySprite(g, type);
+    if (elite) drawIronArmor(g, def.size); // steel sheen + armor ring
     this.container = scene.add.container(this.x, this.y, [g]).setDepth(2);
 
-    // Name label inside container for boss-sized units
+    // Name label inside container for boss-sized units (elites get the faction prefix,
+    // unless the unit already has its own themed name via noPrefix)
     if (def.size >= 36) {
-      const lbl = scene.add.text(0, def.size * 0.25, def.label, {
-        fontSize: '9px', fontFamily: 'Arial Black', color: '#ffffff', stroke: '#000', strokeThickness: 2
+      const name = (elite && !def.noPrefix) ? `${ELITE_PREFIX[def.faction].toUpperCase()} ${def.label}` : def.label;
+      const lbl = scene.add.text(0, def.size * 0.25, name, {
+        fontSize: '9px', fontFamily: 'Arial Black', color: elite ? '#cfe0ff' : '#ffffff', stroke: '#000', strokeThickness: 2
       }).setOrigin(0.5);
       this.container.add(lbl);
     }
@@ -700,6 +757,15 @@ class Tower {
       this.iconText.setVisible(false);
       this.redrawTitan();
     }
+  }
+
+  // Tear down all graphics (used when clearing the board). Phaser destroy() is idempotent.
+  destroy() {
+    if (this.base) this.base.destroy();
+    if (this.customGfx) this.customGfx.destroy();
+    if (this.barrel) this.barrel.destroy();
+    if (this.rangeRing) this.rangeRing.destroy();
+    if (this.iconText) this.iconText.destroy();
   }
 
   redrawTitan() {
@@ -1922,6 +1988,27 @@ function startWaveWithCountdown(scene) {
   });
 }
 
+// Name of the land's final boss (shown on the game-over screen)
+function landBossLabel(faction) {
+  const lastWave = FACTIONS[faction].waves[1];
+  const boss = Object.values(ENEMY_TYPES).find(d => d.faction === faction && d.bossOnly && d.wave === lastWave);
+  return boss ? boss.label : FACTIONS[faction].name;
+}
+
+// Dramatic banner when the elite (second-half) horde arrives at wave 11
+function announceElite(scene, faction) {
+  const msgs = {
+    barbarian: 'Enraged by his fallen champion,\nthe Barbarian King unleashes his IRON LEGION!',
+    undead:    'Dark magic festers in the woods —\na CURSED horde rises!',
+    dark:      'The mountain roars in fury —\nINFERNAL legions pour forth!',
+  };
+  const t = scene.add.text(400, 250, msgs[faction] || 'Stronger reinforcements approach!', {
+    fontSize: '19px', fontFamily: 'Arial Black', color: '#ff8844', align: 'center',
+    stroke: '#000', strokeThickness: 5
+  }).setOrigin(0.5).setDepth(40).setAlpha(0);
+  scene.tweens.add({ targets: t, alpha: 1, duration: 500, hold: 2600, yoyo: true, onComplete: () => t.destroy() });
+}
+
 function showGameOver(scene) {
   const survived = wave - 1;
   const prev = parseInt(localStorage.getItem('td_best_wave') || '0');
@@ -1935,17 +2022,14 @@ function showGameOver(scene) {
     fontSize: '64px', fontFamily: 'Arial Black', color: '#ff2200',
     stroke: '#000000', strokeThickness: 8
   }).setOrigin(0.5).setDepth(51);
-  scene.add.text(400, 250, `Survived ${survived} wave${survived !== 1 ? 's' : ''}`, {
+  scene.add.text(400, 258, `Survived ${survived} wave${survived !== 1 ? 's' : ''}`, {
     fontSize: '28px', color: '#ffffff', stroke: '#000', strokeThickness: 4
   }).setOrigin(0.5).setDepth(51);
-  scene.add.text(400, 295, `Gold earned: ${gold}`, {
-    fontSize: '22px', color: '#ffd700', stroke: '#000', strokeThickness: 3
-  }).setOrigin(0.5).setDepth(51);
 
-  // Faction reached
+  // Fell to the land's boss
   const faction = FACTIONS[getFactionForWave(wave)];
-  scene.add.text(400, 335, `Fell to: ${faction.name}`, {
-    fontSize: '20px', color: faction.color, stroke: '#000', strokeThickness: 3
+  scene.add.text(400, 312, `Fell to: ${landBossLabel(getFactionForWave(wave))}`, {
+    fontSize: '22px', color: faction.color, stroke: '#000', strokeThickness: 3
   }).setOrigin(0.5).setDepth(51);
 
   // Best wave
@@ -1971,15 +2055,10 @@ function showGameOver(scene) {
   btn.on('pointerdown', () => {
     if (restarting) return; // guard against double-fire
     restarting = true;
-    // Remember which land to restart from
+    // Replay the same land. create() fully resets state (towers, gold, wave, etc.),
+    // and scene.restart() destroys the old scene's objects for us.
     restartFaction = getFactionForWave(wave);
-    // Reset all global game state so create() starts fresh
-    for (const t of towers) t.destroy();
-    for (const e of enemies) e.destroy();
-    enemies = []; towers = []; projectiles = []; placedCells = new Set(); waveRoster = [];
-    wave = FACTIONS[restartFaction].waves[0];
-    gold = 150; waveActive = false; gameOver = false; spawnCount = 0; spawnTimer = 0; waveSize = 8;
-    castleLevel = 0; castleHP = CASTLE_LEVELS[0].maxHP; castleMaxHP = CASTLE_LEVELS[0].maxHP;
+    gameOver = false;
     scene.scene.restart();
   });
 }
@@ -2262,15 +2341,15 @@ function create() {
   livesText = { setText: () => {} }; // stub so old refs don't crash
   const rf = FACTIONS[restartFaction];
   goldText     = this.add.text(218, HUD_H/2, '💰 Gold: ' + gold, { fontSize: '15px', color: '#ffd700' }).setOrigin(0, 0.5).setDepth(10);
-  landText     = this.add.text(400, 7,  rf.name, { fontSize: '9px',  fontFamily: 'monospace', color: rf.color }).setOrigin(0.5, 0).setDepth(10).setAlpha(0.8);
-  waveText     = this.add.text(400, 17, 'Wave: ' + localWave(), { fontSize: '13px', color: '#ffffff' }).setOrigin(0.5, 0).setDepth(10);
-  const bestWave = parseInt(localStorage.getItem('td_best_wave') || '0');
-  if (bestWave > 0) this.add.text(510, HUD_H/2, `🏆 Best: ${bestWave}`, { fontSize: '13px', color: '#ffdd00' }).setOrigin(0, 0.5).setDepth(10);
-  const muteBtn = this.add.text(598, HUD_H/2, '🔊', { fontSize: '16px' }).setOrigin(0.5, 0.5).setDepth(10).setInteractive({ useHandCursor: true });
+  // Wave box (land name + wave number) sits to the right, just left of the sound button
+  landText     = this.add.text(665, 7,  rf.name, { fontSize: '9px',  fontFamily: 'monospace', color: rf.color }).setOrigin(0.5, 0).setDepth(10).setAlpha(0.85);
+  waveText     = this.add.text(665, 17, 'Wave: ' + localWave(), { fontSize: '13px', color: '#ffffff' }).setOrigin(0.5, 0).setDepth(10);
+  // Sound toggle in the top-right corner
+  const muteBtn = this.add.text(785, HUD_H/2, '🔊', { fontSize: '16px' }).setOrigin(0.5, 0.5).setDepth(10).setInteractive({ useHandCursor: true });
   muteBtn.on('pointerdown', () => { const m = SFX.toggleMute(); muteBtn.setText(m ? '🔇' : '🔊'); });
   interestText = this.add.text(400, 530, '',                           { fontSize: '13px', color: '#aaffaa', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(10);
   statusText   = this.add.text(400, 508, '',                           { fontSize: '20px', color: '#ffd700', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5, 1).setDepth(10);
-  factionText  = this.add.text(790, 44, rf.name, { fontSize: '9px', fontFamily: 'monospace', color: rf.color }).setOrigin(1, 0).setDepth(10).setAlpha(0.55);
+  factionText  = null; // land name now shown only in the wave box; guards skip the old corner label
 
   // ── Upgrade panel (hidden by default) ──
   upgradePanel = new UpgradePanel(this);
@@ -2297,9 +2376,9 @@ function create() {
     showLandComplete(this, getFactionForWave(wave));
   });
 
-  // Start Wave button
-  const btn = this.add.rectangle(690, HUD_H/2, 150, 28, 0xffd700).setDepth(10).setInteractive();
-  const btnText = this.add.text(690, HUD_H/2, 'Start Wave', { fontSize: '14px', fontFamily: 'Arial Black', color: '#1a1a2e' }).setOrigin(0.5).setDepth(11);
+  // Start Wave button (left of the wave box)
+  const btn = this.add.rectangle(475, HUD_H/2, 150, 28, 0xffd700).setDepth(10).setInteractive();
+  const btnText = this.add.text(475, HUD_H/2, 'Start Wave', { fontSize: '14px', fontFamily: 'Arial Black', color: '#1a1a2e' }).setOrigin(0.5).setDepth(11);
   btn.on('pointerover', () => btn.setFillStyle(0xffec6e));
   btn.on('pointerout',  () => btn.setFillStyle(0xffd700));
   btn.on('pointerdown', () => startWaveWithCountdown(this));
@@ -2496,7 +2575,7 @@ function drawMap(scene, factionKey) {
       deco.fillStyle(0xb89040, 1); deco.fillEllipse(rx-2, ry-2, rr*1.5, rr*0.9);
     }
     // Cacti (simple T-shapes)
-    const cactiPos = [[90,300],[550,200],[680,320],[230,420],[730,200]];
+    const cactiPos = [[90,300],[550,200],[230,420]];
     for (const [cx2,cy2] of cactiPos) {
       if (PATH_CELLS.has(`${Math.floor(cx2/CELL)},${Math.floor(cy2/CELL)}`)) continue;
       deco.fillStyle(0x4a8830, 1);
@@ -2505,6 +2584,19 @@ function drawMap(scene, factionKey) {
       deco.fillRect(cx2-14, cy2-26, 5, 10);   // left arm vertical tip
       deco.fillRect(cx2+4,  cy2-24, 10, 5);   // right arm horizontal
       deco.fillRect(cx2+9,  cy2-30, 5, 10);   // right arm vertical tip
+    }
+    // Oasis pool with palms, in the open area near the castle
+    const ox = 720, oy = 300;
+    deco.fillStyle(0xc9a050, 1); deco.fillEllipse(ox, oy, 128, 66);        // sandy rim
+    deco.fillStyle(0x2a7ab0, 1); deco.fillEllipse(ox, oy, 110, 52);        // water
+    deco.fillStyle(0x4aa6d6, 1); deco.fillEllipse(ox-6, oy-5, 70, 28);     // shimmer
+    deco.fillStyle(0xb8e0f4, 0.7); deco.fillEllipse(ox-20, oy-9, 24, 7);   // highlight
+    for (const [px, py] of [[ox-50, oy-2], [ox+50, oy+2]]) {
+      deco.fillStyle(0x7a5028, 1); deco.fillRect(px-2, py-40, 4, 42);      // trunk
+      deco.fillStyle(0x3a8a32, 1);                                          // fronds
+      deco.fillEllipse(px, py-44, 30, 10);
+      deco.fillEllipse(px-13, py-39, 20, 8); deco.fillEllipse(px+13, py-39, 20, 8);
+      deco.fillEllipse(px-8, py-50, 16, 8);  deco.fillEllipse(px+8, py-50, 16, 8);
     }
 
   } else if (factionKey === 'undead') {
@@ -2717,6 +2809,8 @@ function update(time, delta) {
     const unlockMsg = justUnlocked.length ? ' 🔓 ' + justUnlocked.map(([,d]) => d.label).join(' & ') + ' unlocked!' : '';
     statusText.setText('Wave Complete!' + unlockMsg);
     if (justUnlocked.length) SFX.play('unlock');
+    // Entering the second half — the land's lord sends elite reinforcements
+    if (localWave(wave) === 11) announceElite(this, getFactionForWave(wave));
     this._waveBtn.setFillStyle(0xffd700).setInteractive();
     this._waveBtnText.setText('Start Wave');
     this._waveBtn.on('pointerover', () => this._waveBtn.setFillStyle(0xffec6e));
