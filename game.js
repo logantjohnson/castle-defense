@@ -66,10 +66,10 @@ buildPathCells(currentPath);
 // unlockWave: 0 = available from start, N = available from local wave N of every land
 // upgrades: [lvl0→1 cost, lvl1→2 cost, lvl2→3 cost]
 const TOWER_TYPES = {
-  arrow:  { label: 'Arrow',     cost: 50,  color: 0x4488ff, range: 120, damage: 20,  fireRate: 1000, projColor: 0x88bbff, projSpeed: 300,  dmgColor: '#aaccff', sfxFire: 'arrow',     sfxHit: 'arrow',     unlockWave: 0, icon: '🏹', desc: 'Fast & cheap',           upgrades: [40,  75,  130] },
-  cannon: { label: 'Cannon',    cost: 100, color: 0xff8800, range: 100, damage: 60,  fireRate: 2000, projColor: 0xff4400, projSpeed: 220,  dmgColor: '#ff8844', sfxFire: 'cannon',    sfxHit: 'cannon',    unlockWave: 0, icon: '💣', desc: 'Slow, hard hit',         upgrades: [55,  100, 175] },
+  arrow:  { label: 'Arrow',     cost: 50,  color: 0x4488ff, range: 120, damage: 20,  fireRate: 1000, projColor: 0x88bbff, projSpeed: 300,  dmgColor: '#aaccff', sfxFire: 'arrow',     sfxHit: 'arrow',     unlockWave: 0,  icon: '🏹', desc: 'Fast & cheap',           upgrades: [40,  75,  130] },
+  pitch:  { label: 'Pitch',     cost: 75,  color: 0x442200, range: 100, damage: 8,   fireRate: 1500, projColor: 0x221100, projSpeed: 200,  dmgColor: '#886633', sfxFire: 'cannon',    sfxHit: 'cannon',    unlockWave: 0,  icon: '🏺', desc: 'Slows enemies',          upgrades: [45,  85,  150], slowPct: 0.20, slowPctPerLevel: 0.05 },
+  cannon: { label: 'Cannon',    cost: 100, color: 0xff8800, range: 100, damage: 60,  fireRate: 2000, projColor: 0xff4400, projSpeed: 220,  dmgColor: '#ff8844', sfxFire: 'cannon',    sfxHit: 'cannon',    unlockWave: 0,  icon: '💣', desc: 'Slow, hard hit',         upgrades: [55,  100, 175] },
   sniper: { label: 'Trebuchet', cost: 150, color: 0xaa44ff, range: 220, damage: 45,  fireRate: 2500, projColor: 0xdd88ff, projSpeed: 500,  dmgColor: '#dd88ff', sfxFire: 'trebuchet', sfxHit: 'trebuchet', unlockWave: 0, icon: '🪨', desc: 'Long range',             upgrades: [65,  120, 210] },
-  mine:   { label: 'Mine',      cost: 100, color: 0x886633, range: 0,   damage: 0,   fireRate: 99999,projColor: 0xffd700, projSpeed: 1,    dmgColor: '#ffd700', sfxFire: 'interest',  sfxHit: 'interest',  unlockWave: 5, icon: '⛏️', desc: '+2% interest (max 1)',   upgrades: [75,  125, 200] },
   tesla:  { label: 'Titan',     cost: 300, color: 0x88aacc, range: 150, damage: 160, fireRate: 1600, projColor: 0xeeeeff, projSpeed: 999,  dmgColor: '#aaddff', sfxFire: 'tesla',     sfxHit: 'tesla',     unlockWave: 7,  icon: '🗿', desc: 'Lightning bolts',        upgrades: [100, 175, 300] },
   flame:  { label: 'Dragon',    cost: 450, color: 0x44bb44, range: 80,  damage: 250, fireRate: 550,  projColor: 0xff6600, projSpeed: 180,  dmgColor: '#ff4400', sfxFire: 'flame',     sfxHit: 'flame',     unlockWave: 13, icon: '🐉', desc: 'Fire breath, close range', upgrades: [120, 210, 360] },
 };
@@ -77,20 +77,20 @@ const TOWER_TYPES = {
 // ── Enemy factions & types ────────────────────────────────────
 const FACTIONS = {
   barbarian: { name: 'Desert Oasis',    color: '#cc3300', waves: [1,20],  difficulty: 1.00 },
-  undead:    { name: 'Mystical Forest', color: '#44aaaa', waves: [21,40], difficulty: 1.18 },
-  dark:      { name: 'Volcanic Peaks',  color: '#9933cc', waves: [41,60], difficulty: 1.38 },
+  undead:    { name: 'Mystical Forest', color: '#44aaaa', waves: [21,40], difficulty: 1.10 },
+  dark:      { name: 'Volcanic Peaks',  color: '#9933cc', waves: [41,60], difficulty: 1.20 },
 };
 
 // ── Difficulty modes ──────────────────────────────────────────
 // hpMult/countMult/rewardMult scale enemy strength, numbers, and payout.
 // gold = starting gold per land. These are first-pass values; tuned in the balance pass.
 const DIFFICULTY_MODES = {
-  easy:   { name: 'Easy',   color: '#55cc55', hpMult: 0.75, countMult: 0.80, rewardMult: 1.15, gold: 250, blurb: 'A relaxed defense' },
-  normal: { name: 'Normal', color: '#ffd700', hpMult: 1.00, countMult: 1.00, rewardMult: 1.00, gold: 200, blurb: 'The intended challenge' },
-  hard:   { name: 'Hard',   color: '#ff8822', hpMult: 1.30, countMult: 1.10, rewardMult: 0.95, gold: 200, blurb: 'For seasoned defenders' },
-  heroic: { name: 'Heroic', color: '#ff3333', hpMult: 1.65, countMult: 1.20, rewardMult: 0.90, gold: 150, blurb: 'Only the bravest knights' },
+  easy:   { name: 'Easy',   color: '#55cc55', hpMult: 0.75, countBase: 8,  countScale: 2.0, rewardMult: 1.15, gold: 250, blurb: 'A relaxed defense' },
+  normal: { name: 'Normal', color: '#ffd700', hpMult: 1.00, countBase: 6,  countScale: 1.8, rewardMult: 1.00, gold: 175, blurb: 'The intended challenge' },
+  heroic: { name: 'Heroic', color: '#ff3333', hpMult: 1.30, countBase: 4,  countScale: 1.5, rewardMult: 0.90, gold: 150, blurb: 'Spend wisely — every wave counts' },
 };
 let currentDifficulty = 'normal';
+let infinityMode = false;
 function diffMode() { return DIFFICULTY_MODES[currentDifficulty]; }
 
 // shape: 'square' | 'circle' | 'diamond' | 'triangle'
@@ -138,7 +138,7 @@ const BASE_HP    = 90;
 function getFactionForWave(w) {
   for (const [key, f] of Object.entries(FACTIONS))
     if (w >= f.waves[0] && w <= f.waves[1]) return key;
-  return 'dark';
+  return infinityMode ? restartFaction : 'dark'; // infinity: stay on chosen land
 }
 function localWave(w) {
   w = w ?? wave;
@@ -162,7 +162,8 @@ function buildWaveRoster(wave) {
   // Scale enemy count by local wave number so wave 21 feels like wave 1 of its map
   const factionStart = FACTIONS[faction].waves[0];
   const localWave = wave - factionStart + 1;
-  const total = Math.max(4, Math.round((8 + localWave * 2) * diffMode().countMult));
+  const d = diffMode();
+  const total = Math.max(3, Math.round(d.countBase + localWave * d.countScale));
 
   // Fill: weight toward harder units as wave progresses
   for (let i = 0; i < total; i++) {
@@ -551,6 +552,8 @@ class Enemy {
     const hp = Math.floor(BASE_HP * def.hpMult * landDiff * mode.hpMult * eliteMul * (1 + localWave(wave) * 0.22));
     this.maxHp = hp; this.hp = hp;
     this.speed = BASE_SPEED * def.speedMult;
+    this.slowMult = 1.0;
+    this.slowTimer = 0;
     this.reward = Math.floor(def.reward * mode.rewardMult);
     this.liveDmg = def.lives;
     this.alive = true; this.reached = false;
@@ -581,12 +584,18 @@ class Enemy {
     this.hpBar   = scene.add.rectangle(this.x - barW/2, this.y + this._barOffY, barW, 5, 0x2ecc71).setDepth(7).setOrigin(0, 0.5);
   }
 
+  applySlow(pct, duration) {
+    this.slowMult = Math.min(this.slowMult, 1 - pct); // take the strongest slow
+    this.slowTimer = Math.max(this.slowTimer, duration);
+  }
+
   update(delta) {
     if (!this.alive || this.reached) return;
+    if (this.slowTimer > 0) { this.slowTimer -= delta; if (this.slowTimer <= 0) { this.slowTimer = 0; this.slowMult = 1.0; } }
     const target = currentPath[this.waypointIndex];
     const dx = target.x - this.x, dy = target.y - this.y;
     const dist = Math.sqrt(dx*dx + dy*dy);
-    const step = this.speed * (delta / 1000);
+    const step = this.speed * this.slowMult * (delta / 1000);
     if (dist <= step) {
       this.x = target.x; this.y = target.y;
       this.waypointIndex++;
@@ -604,6 +613,7 @@ class Enemy {
 
   _syncSprites() {
     this.container.setPosition(this.x, this.y);
+    this.container.setAlpha(this.slowTimer > 0 ? 0.65 : 1.0); // darken when tarred
     const barY = this.y + this._barOffY;
     this.hpBarBg.setPosition(this.x, barY);
     this.hpBar.setPosition(this.x - this._barW/2, barY);
@@ -667,29 +677,16 @@ const DRAGON_COLORS = [0x44bb44, 0x2266ff, 0xff2200, 0x111111];
 const DRAGON_WING_COLORS = [0x2a8830, 0x1144cc, 0xbb1100, 0x222222];
 const DRAGON_NAMES = ['Green Dragon', 'Blue Dragon', 'Red Dragon', 'Black Dragon'];
 
-function getTotalMineBonus() {
-  let bonus = 0;
-  for (const t of towers) {
-    if (t.isMine) bonus += (1 + t.dmgLevel) * INTEREST_RATE;
-  }
-  return bonus;
-}
-
 function globalUpgradeTier() {
-  // Returns min per-stat level across all non-mine towers (drives dragon color)
-  const nonMines = towers.filter(t => !t.isMine);
-  if (!nonMines.length) return 0;
+  if (!towers.length) return 0;
   let min = MAX_UPGRADE;
-  for (const t of nonMines) min = Math.min(min, t.dmgLevel, t.rangeLevel, t.rateLevel);
+  for (const t of towers) min = Math.min(min, t.dmgLevel, t.rangeLevel, t.rateLevel);
   return min;
 }
 
 function totalUpgradesAllowed() {
-  // A tower's total upgrades (dmg+range+rate) can't exceed the global minimum + 1.
-  // This forces "bring every tower to N stars before any tower reaches N+1 stars."
-  const nonMines = towers.filter(t => !t.isMine);
-  if (!nonMines.length) return MAX_UPGRADE * 3;
-  return Math.min(...nonMines.map(t => t.dmgLevel + t.rangeLevel + t.rateLevel)) + 1;
+  if (!towers.length) return MAX_UPGRADE * 3;
+  return Math.min(...towers.map(t => t.dmgLevel + t.rangeLevel + t.rateLevel)) + 1;
 }
 
 function refreshAllDragons() {
@@ -716,20 +713,6 @@ class Tower {
 
     this.isDragon = (type === 'flame');
     this.isTitan  = (type === 'tesla');
-    this.isMine   = (type === 'mine');
-
-    if (this.isMine) {
-      this.base = scene.add.rectangle(this.x, this.y, CELL-4, CELL-4, 0x000000, 0).setDepth(5);
-      this.base.setStrokeStyle(2, 0xffffff, 0.7);
-      this.customGfx = scene.add.graphics().setDepth(6);
-      this.dragonGfx = null;
-      this.barrel = scene.add.rectangle(this.x, this.y, 1, 1, 0x000000, 0).setDepth(5);
-      this.rangeRing = scene.add.circle(this.x, this.y, 1, 0xffffff, 0).setDepth(1); // invisible
-      this.rangeRing.setStrokeStyle(0, 0xffffff, 0);
-      this.iconText = scene.add.text(this.x, this.y, '', { fontSize: '18px' }).setOrigin(0.5).setDepth(7);
-      this.redrawMine();
-      return;
-    }
 
     if (this.isDragon || this.isTitan) {
       this.base = scene.add.rectangle(this.x, this.y, CELL-4, CELL-4, 0x000000, 0).setDepth(5);
@@ -860,53 +843,6 @@ class Tower {
     this.baseDef = { ...TOWER_TYPES['flame'], label: DRAGON_NAMES[tier], color: bc };
   }
 
-  redrawMine() {
-    const g = this.customGfx;
-    if (!g) return;
-    g.clear();
-    const x = this.x, y = this.y;
-    const bonus = (1 + this.dmgLevel) * 2;
-
-    // Dark shaft
-    g.fillStyle(0x110a00, 1);
-    g.fillRect(x-12, y-10, 24, 22);
-
-    // Wooden support frame
-    g.fillStyle(0x7a4a20, 1);
-    g.fillRect(x-14, y-13, 28, 5);   // top beam
-    g.fillRect(x-14, y+10, 28, 5);   // bottom beam
-    g.fillRect(x-14, y-13, 5, 28);   // left post
-    g.fillRect(x+9,  y-13, 5, 28);   // right post
-
-    // Cross braces inside shaft
-    g.lineStyle(2, 0x5a3010, 0.9);
-    g.beginPath(); g.moveTo(x-10, y-8); g.lineTo(x+10, y+8); g.strokePath();
-    g.beginPath(); g.moveTo(x+10, y-8); g.lineTo(x-10, y+8); g.strokePath();
-
-    // Gold vein flecks
-    g.fillStyle(0xffd700, 0.85);
-    g.fillRect(x-8, y-4, 3, 2);
-    g.fillRect(x+5, y+1, 4, 2);
-    g.fillRect(x-2, y+5, 2, 3);
-    g.fillRect(x+2, y-6, 3, 2);
-
-    // Interest rate badge
-    g.fillStyle(0x443300, 0.9);
-    g.fillRoundedRect(x-14, y+16, 28, 12, 3);
-    g.fillStyle(0xffd700, 1);
-
-    // Selection outline
-    const sel = this.base.strokeColor === 0xffd700;
-    g.lineStyle(2, sel ? 0xffd700 : 0x886633, sel ? 1 : 0.6);
-    g.strokeRect(x-14, y-13, 28, 41);
-
-    // Interest label drawn via text (update the iconText)
-    this.iconText.setVisible(true);
-    this.iconText.setText('+' + bonus + '%');
-    this.iconText.setStyle({ fontSize: '9px', color: '#ffd700', fontFamily: 'Arial Black' });
-    this.iconText.setPosition(x, y + 22);
-  }
-
   _icon(t) { return TOWER_TYPES[t].icon; }
 
   get damage()   { return Math.floor(this.baseDef.damage   * (1 + this.dmgLevel   * 0.20)); } // each ★ = +20% dmg (was 40%)
@@ -932,17 +868,14 @@ class Tower {
     const level = this[key];
     if (level >= MAX_UPGRADE) return false;
     // Per-tower tier gate: all three stats must be at level N before any can reach N+1
-    if (!this.isMine) {
-      const minLevel = Math.min(this.dmgLevel, this.rangeLevel, this.rateLevel);
-      if (level >= minLevel + 1) return false;
-    }
+    const minLevel = Math.min(this.dmgLevel, this.rangeLevel, this.rateLevel);
+    if (level >= minLevel + 1) return false;
     const cost = this.upgradeCost(level);
     if (gold < cost) return false;
     gold -= cost;
     goldText.setText('💰 Gold: ' + gold);
     this[key]++;
-    if (!this.isMine) this.rangeRing.setRadius(this.range);
-    if (this.isMine) this.redrawMine();
+    this.rangeRing.setRadius(this.range);
     refreshAllDragons();
     return true;
   }
@@ -952,7 +885,6 @@ class Tower {
     this.rangeRing.setStrokeStyle(1, 0xffd700, sel ? 0.5 : 0.15);
     if (this.isDragon) this.redrawDragon(globalUpgradeTier());
     if (this.isTitan)  this.redrawTitan();
-    if (this.isMine)   this.redrawMine();
   }
 
   // Move all graphics to pixel position px, py
@@ -960,10 +892,9 @@ class Tower {
     this.x = px; this.y = py;
     this.base.setPosition(px, py);
     this.rangeRing.setPosition(px, py);
-    this.iconText.setPosition(px, py + (this.isMine ? 22 : 0));
+    this.iconText.setPosition(px, py);
     if (this.isDragon) this.redrawDragon(globalUpgradeTier());
     else if (this.isTitan) this.redrawTitan();
-    else if (this.isMine) this.redrawMine();
     else this.barrel.setPosition(px + 12, py);
   }
 
@@ -997,7 +928,6 @@ class Tower {
   }
 
   update(delta, enemies) {
-    if (this.isMine) return; // mines don't shoot
     this.cooldown -= delta;
     if (this.cooldown > 0) return;
     let target = null, closest = Infinity;
@@ -1012,10 +942,13 @@ class Tower {
     const angle = Math.atan2(target.y - this.y, target.x - this.x);
     this.barrel.setPosition(this.x + Math.cos(angle)*12, this.y + Math.sin(angle)*12);
     this.barrel.setRotation(angle);
+    const slowPct = this.baseDef.slowPct ? this.baseDef.slowPct + this.dmgLevel * (this.baseDef.slowPctPerLevel || 0) : 0;
     projectiles.push(new Projectile(this.scene, this.x, this.y, target, {
       damage: this.damage,
       projColor: this.baseDef.projColor,
-      projSpeed: this.baseDef.projSpeed
+      projSpeed: this.baseDef.projSpeed,
+      slowPct,
+      slowDuration: 2000
     }));
   }
 }
@@ -1025,8 +958,10 @@ class Projectile {
   constructor(scene, x, y, target, def) {
     this.scene  = scene;
     this.target = target;
-    this.damage = def.damage;
-    this.speed  = def.projSpeed;
+    this.damage      = def.damage;
+    this.speed       = def.projSpeed;
+    this.slowPct     = def.slowPct     || 0;
+    this.slowDuration= def.slowDuration|| 0;
     this.x = x; this.y = y;
     this.done = false;
     this.dmgColor = def.dmgColor || '#ffffff';
@@ -1047,6 +982,7 @@ class Projectile {
 
     if (dist <= step) {
       this.target.takeDamage(this.damage);
+      if (this.slowPct > 0 && this.target.alive) this.target.applySlow(this.slowPct, this.slowDuration);
       spawnDamageNumber(this.scene, this.target.x, this.target.y - 16, this.damage, this.dmgColor);
       SFX.play(this.sfxHit);
       this.destroy();
@@ -1154,49 +1090,32 @@ class UpgradePanel {
     const sellPrice = Math.floor(t.baseDef.cost * 0.75);
     this.sellBtnTxt.setText(`💰 Sell ${sellPrice}g`);
     this.sellBtn.setFillStyle(0x882222);
-    if (t.isMine) {
-      // Mine: single interest upgrade row, hide others
-      this.rows[0].lbl.setText('⛏️ Interest +2%');
-      const lvl = t.dmgLevel;
-      this.rows[0].lvl.setText('★'.repeat(lvl) + '☆'.repeat(MAX_UPGRADE - lvl));
+    this.rows[0].lbl.setText(t.type === 'pitch' ? '🐢 Slow %' : '⚔️  Damage');
+    this.rows[1].lbl.setText('📡 Range');
+    this.rows[2].lbl.setText('⚡ Fire Rate');
+    this.rows[1].btn.setVisible(true); this.rows[2].btn.setVisible(true);
+    const stats = [
+      { level: t.dmgLevel,   stat: 'dmg' },
+      { level: t.rangeLevel, stat: 'range' },
+      { level: t.rateLevel,  stat: 'rate' },
+    ];
+    const minLevel = Math.min(t.dmgLevel, t.rangeLevel, t.rateLevel);
+    this.rows.forEach((row, i) => {
+      const lvl  = stats[i].level;
+      const tierLocked = lvl >= minLevel + 1;
+      row.lvl.setText('★'.repeat(lvl) + '☆'.repeat(MAX_UPGRADE - lvl));
       if (lvl >= MAX_UPGRADE) {
-        this.rows[0].btn.setFillStyle(0x444444).removeInteractive();
-        this.rows[0].bTxt.setText('MAX').setColor('#888888');
+        row.btn.setFillStyle(0x444444).removeInteractive();
+        row.bTxt.setText('MAX').setColor('#888888');
+      } else if (tierLocked) {
+        row.btn.setFillStyle(0x885500).removeInteractive();
+        row.bTxt.setText('TIER').setColor('#ffaa44');
       } else {
         const cost = t.upgradeCost(lvl);
-        this.rows[0].btn.setFillStyle(gold >= cost ? 0x226622 : 0x662222).setInteractive();
-        this.rows[0].bTxt.setText(cost + 'g').setColor(gold >= cost ? '#aaffaa' : '#ff8888');
+        row.btn.setFillStyle(gold >= cost ? 0x226622 : 0x662222).setInteractive();
+        row.bTxt.setText(cost + 'g').setColor(gold >= cost ? '#aaffaa' : '#ff8888');
       }
-      this.rows[1].lbl.setText(''); this.rows[1].lvl.setText(''); this.rows[1].btn.setVisible(false); this.rows[1].bTxt.setText('');
-      this.rows[2].lbl.setText(''); this.rows[2].lvl.setText(''); this.rows[2].btn.setVisible(false); this.rows[2].bTxt.setText('');
-    } else {
-      this.rows[0].lbl.setText('⚔️  Damage');
-      this.rows[1].lbl.setText('📡 Range');
-      this.rows[2].lbl.setText('⚡ Fire Rate');
-      this.rows[1].btn.setVisible(true); this.rows[2].btn.setVisible(true);
-      const stats = [
-        { level: t.dmgLevel,   stat: 'dmg' },
-        { level: t.rangeLevel, stat: 'range' },
-        { level: t.rateLevel,  stat: 'rate' },
-      ];
-      const minLevel = Math.min(t.dmgLevel, t.rangeLevel, t.rateLevel);
-      this.rows.forEach((row, i) => {
-        const lvl  = stats[i].level;
-        const tierLocked = !t.isMine && lvl >= minLevel + 1;
-        row.lvl.setText('★'.repeat(lvl) + '☆'.repeat(MAX_UPGRADE - lvl));
-        if (lvl >= MAX_UPGRADE) {
-          row.btn.setFillStyle(0x444444).removeInteractive();
-          row.bTxt.setText('MAX').setColor('#888888');
-        } else if (tierLocked) {
-          row.btn.setFillStyle(0x885500).removeInteractive();
-          row.bTxt.setText('TIER').setColor('#ffaa44');
-        } else {
-          const cost = t.upgradeCost(lvl);
-          row.btn.setFillStyle(gold >= cost ? 0x226622 : 0x662222).setInteractive();
-          row.bTxt.setText(cost + 'g').setColor(gold >= cost ? '#aaffaa' : '#ff8888');
-        }
-      });
-    }
+    });
   }
 
   hide() {
@@ -1298,34 +1217,406 @@ function drawTitleKnight(scene, x, y) {
   return g;
 }
 
-function drawTitleEnemy(scene, x, y, scale, color) {
+function drawTitleCrossbowTower(scene, x, y) {
   const g = scene.add.graphics();
-  const s = scale;
-  // hunched dark body
-  g.fillStyle(0x14100c, 1); g.fillEllipse(x, y, 30 * s, 24 * s);
-  g.fillStyle(color, 0.85);  g.fillCircle(x, y - 14 * s, 11 * s);   // head
-  // glowing red eyes
-  g.fillStyle(0xff2200, 1);  g.fillCircle(x - 4 * s, y - 15 * s, 2.2 * s); g.fillCircle(x + 4 * s, y - 15 * s, 2.2 * s);
-  // horns
-  g.fillStyle(0x0a0806, 1);  g.fillTriangle(x - 10*s, y - 20*s, x - 6*s, y - 20*s, x - 12*s, y - 30*s);
-  g.fillStyle(0x0a0806, 1);  g.fillTriangle(x + 10*s, y - 20*s, x + 6*s, y - 20*s, x + 12*s, y - 30*s);
+  const stone = 0x8a8a96, stoneDark = 0x5f5f6d, stoneLt = 0xb2b4bf;
+  // shadow
+  g.fillStyle(0x000000, 0.18); g.fillEllipse(x, y + 4, 68, 12);
+  // tower body
+  g.fillStyle(stoneDark, 1); g.fillRect(x - 28, y - 108, 56, 112);
+  g.fillStyle(stone, 1);     g.fillRect(x - 25, y - 106, 50, 110);
+  g.fillStyle(stoneLt, 0.35); g.fillRect(x - 21, y - 104, 11, 106);
+  // stone block texture
+  g.fillStyle(stoneDark, 0.35);
+  for (let row = 0; row < 4; row++) for (let col = 0; col < 2; col++)
+    g.fillRect(x - 22 + col * 26, y - 96 + row * 26, 23, 24);
+  // battlements
+  for (let bx = x - 28; bx < x + 24; bx += 14) {
+    g.fillStyle(stoneDark, 1); g.fillRect(bx, y - 122, 10, 16);
+    g.fillStyle(stone, 1);     g.fillRect(bx + 2, y - 120, 6, 14);
+  }
+  // platform ledge
+  g.fillStyle(stoneDark, 1); g.fillRect(x - 33, y - 110, 66, 7);
+  g.fillStyle(stone, 1);     g.fillRect(x - 31, y - 109, 62, 5);
+  // arrow slit window
+  g.fillStyle(0x1a1018, 1); g.fillRect(x - 5, y - 72, 10, 22);
+  g.fillStyle(0xffcc44, 0.2); g.fillRect(x - 3, y - 70, 6, 18);
+  // ballista frame (wooden legs)
+  g.fillStyle(0x6a3a10, 1); g.fillRect(x - 22, y - 144, 7, 26); g.fillRect(x + 15, y - 144, 7, 26);
+  g.fillStyle(0x7a4a18, 1); g.fillRect(x - 20, y - 148, 40, 8);
+  // bow arm (wide crossbow)
+  g.fillStyle(0x6a3a10, 1); g.fillRect(x - 34, y - 160, 68, 10);
+  g.fillStyle(0x8a5a28, 1); g.fillRect(x - 32, y - 158, 64, 6);
+  // bow tips (curved)
+  g.fillStyle(0x4a2808, 1);
+  g.fillTriangle(x - 34, y - 158, x - 42, y - 146, x - 27, y - 150);
+  g.fillTriangle(x + 34, y - 158, x + 42, y - 146, x + 27, y - 150);
+  // bowstring
+  g.lineStyle(2, 0xddc090, 0.9);
+  g.beginPath(); g.moveTo(x - 40, y - 150); g.lineTo(x, y - 168); g.lineTo(x + 40, y - 150); g.strokePath();
+  // loaded bolt
+  g.fillStyle(0xb0a060, 1); g.fillRect(x - 30, y - 157, 60, 4);
+  g.fillStyle(0x8899aa, 1); g.fillTriangle(x + 30, y - 159, x + 30, y - 153, x + 40, y - 156);
   return g;
 }
 
-function drawTitleTower(scene, x, y, type) {
+function drawTitleTitan(scene, x, y) {
   const g = scene.add.graphics();
-  const stone = 0x8a8a96, stoneDark = 0x5f5f6d;
-  g.fillStyle(stoneDark, 1); g.fillRect(x - 13, y - 34, 26, 40);
-  g.fillStyle(stone, 1);     g.fillRect(x - 11, y - 34, 22, 40);
-  g.fillStyle(stoneDark, 1);
-  for (let bx = x - 13; bx < x + 13; bx += 9) g.fillRect(bx, y - 40, 5, 7);
-  if (type === 'arrow') {
-    g.fillStyle(0x4488ff, 1); g.fillCircle(x, y - 22, 7);
-    g.lineStyle(2, 0xffffff, 1); g.beginPath(); g.moveTo(x - 6, y - 22); g.lineTo(x + 8, y - 22); g.strokePath();
-  } else {
-    g.fillStyle(0xff8800, 1); g.fillCircle(x, y - 20, 8);
-    g.fillStyle(0x222222, 1); g.fillCircle(x + 6, y - 24, 4);
+  const stone = 0x8095aa, stoneDark = 0x506070, stoneLt = 0xb0c5d8;
+  const glow = 0x88ccff;
+  // shadow
+  g.fillStyle(0x000000, 0.22); g.fillEllipse(x, y + 3, 75, 14);
+  // boots
+  g.fillStyle(stoneDark, 1); g.fillRect(x - 28, y - 6, 24, 10); g.fillRect(x + 4, y - 6, 24, 10);
+  // legs
+  g.fillStyle(stoneDark, 1); g.fillRect(x - 24, y - 44, 19, 40); g.fillRect(x + 5, y - 44, 19, 40);
+  g.fillStyle(stone, 1);     g.fillRect(x - 22, y - 44, 15, 40); g.fillRect(x + 7, y - 44, 15, 40);
+  // torso
+  g.fillStyle(stoneDark, 1); g.fillRect(x - 30, y - 96, 60, 56);
+  g.fillStyle(stone, 1);     g.fillRect(x - 27, y - 94, 54, 54);
+  g.fillStyle(stoneLt, 0.4); g.fillRect(x - 23, y - 92, 13, 50);
+  // torso panel lines
+  g.lineStyle(2, stoneDark, 0.5);
+  g.beginPath(); g.moveTo(x, y - 96); g.lineTo(x, y - 40); g.strokePath();
+  g.beginPath(); g.moveTo(x - 27, y - 70); g.lineTo(x + 27, y - 70); g.strokePath();
+  // shoulder pads (massive)
+  g.fillStyle(stoneDark, 1); g.fillRect(x - 46, y - 100, 20, 24); g.fillRect(x + 26, y - 100, 20, 24);
+  g.fillStyle(stone, 1);     g.fillRect(x - 44, y - 98, 16, 22);  g.fillRect(x + 28, y - 98, 16, 22);
+  // arms
+  g.fillStyle(stoneDark, 1); g.fillRect(x - 53, y - 84, 19, 54); g.fillRect(x + 34, y - 84, 19, 54);
+  g.fillStyle(stone, 1);     g.fillRect(x - 51, y - 82, 15, 52); g.fillRect(x + 36, y - 82, 15, 52);
+  // fists
+  g.fillStyle(stoneDark, 1); g.fillRect(x - 57, y - 34, 24, 20); g.fillRect(x + 33, y - 34, 24, 20);
+  g.fillStyle(stone, 1);     g.fillRect(x - 55, y - 32, 20, 16); g.fillRect(x + 35, y - 32, 20, 16);
+  // neck
+  g.fillStyle(stoneDark, 1); g.fillRect(x - 13, y - 112, 26, 18);
+  g.fillStyle(stone, 1);     g.fillRect(x - 11, y - 110, 22, 16);
+  // head
+  g.fillStyle(stoneDark, 1); g.fillRect(x - 24, y - 148, 48, 40);
+  g.fillStyle(stone, 1);     g.fillRect(x - 22, y - 146, 44, 38);
+  g.fillStyle(stoneLt, 0.35); g.fillRect(x - 19, y - 144, 12, 36);
+  // brow ridge + jaw line
+  g.fillStyle(stoneDark, 1); g.fillRect(x - 24, y - 148, 48, 9);
+  g.fillStyle(stoneDark, 1); g.fillRect(x - 24, y - 118, 48, 7);
+  // glowing eyes
+  g.fillStyle(glow, 0.25); g.fillCircle(x - 10, y - 130, 9); g.fillCircle(x + 10, y - 130, 9);
+  g.fillStyle(glow, 1);    g.fillCircle(x - 10, y - 130, 5); g.fillCircle(x + 10, y - 130, 5);
+  g.fillStyle(0xcceeff, 1); g.fillCircle(x - 10, y - 130, 2.5); g.fillCircle(x + 10, y - 130, 2.5);
+  // cracks on stone
+  g.lineStyle(1, stoneDark, 0.7);
+  g.beginPath(); g.moveTo(x - 8, y - 88); g.lineTo(x + 6, y - 64); g.strokePath();
+  g.beginPath(); g.moveTo(x - 16, y - 134); g.lineTo(x - 7, y - 120); g.strokePath();
+  return g;
+}
+
+function drawTitleGreenDragon(scene, x, y) {
+  const g = scene.add.graphics();
+  const grn = 0x2a8a22, grnDk = 0x1a5a14, scl = 0x44aa2a, belly = 0x88cc44;
+  // shadow
+  g.fillStyle(0x000000, 0.2); g.fillEllipse(x + 22, y + 3, 100, 14);
+  // left wing (spread back)
+  g.fillStyle(grnDk, 0.65);
+  g.fillTriangle(x - 16, y - 52, x - 88, y - 98, x - 58, y - 18);
+  g.fillTriangle(x - 16, y - 52, x - 108, y - 62, x - 58, y - 18);
+  g.lineStyle(2, grnDk, 0.9);
+  g.beginPath(); g.moveTo(x - 16, y - 50); g.lineTo(x - 86, y - 96); g.strokePath();
+  g.beginPath(); g.moveTo(x - 16, y - 50); g.lineTo(x - 106, y - 60); g.strokePath();
+  g.beginPath(); g.moveTo(x - 16, y - 50); g.lineTo(x - 62, y - 16); g.strokePath();
+  // right wing (partial behind body)
+  g.fillStyle(grnDk, 0.45);
+  g.fillTriangle(x + 12, y - 46, x + 64, y - 90, x + 52, y - 14);
+  g.lineStyle(2, grnDk, 0.6);
+  g.beginPath(); g.moveTo(x + 12, y - 46); g.lineTo(x + 62, y - 88); g.strokePath();
+  g.beginPath(); g.moveTo(x + 12, y - 46); g.lineTo(x + 50, y - 12); g.strokePath();
+  // tail
+  g.lineStyle(16, grnDk, 1); g.beginPath(); g.moveTo(x - 8, y - 10); g.lineTo(x - 52, y + 6); g.lineTo(x - 72, y - 8); g.strokePath();
+  g.lineStyle(11, grn, 1);   g.beginPath(); g.moveTo(x - 8, y - 10); g.lineTo(x - 52, y + 6); g.lineTo(x - 72, y - 8); g.strokePath();
+  g.fillStyle(grnDk, 1); g.fillTriangle(x - 68, y - 8, x - 76, y - 13, x - 82, y + 2);
+  // body
+  g.fillStyle(grnDk, 1); g.fillEllipse(x + 12, y - 28, 62, 50);
+  g.fillStyle(grn, 1);   g.fillEllipse(x + 10, y - 30, 56, 46);
+  g.fillStyle(belly, 0.7); g.fillEllipse(x + 14, y - 24, 30, 38);
+  g.fillStyle(belly, 0.35); g.fillEllipse(x + 12, y - 20, 20, 28);
+  // back spines
+  g.fillStyle(scl, 1);
+  [[x, y - 54],[x + 7, y - 58],[x + 15, y - 56],[x + 22, y - 52]].forEach(([sx,sy]) =>
+    g.fillTriangle(sx - 3, sy, sx + 3, sy, sx, sy - 11));
+  // scale patches
+  g.fillStyle(scl, 0.35);
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) g.fillCircle(x - 4 + c * 10, y - 46 + r * 11, 4);
+  // front legs + claws
+  g.fillStyle(grnDk, 1); g.fillRect(x + 10, y - 14, 14, 22); g.fillRect(x + 22, y - 10, 12, 18);
+  g.fillStyle(grn, 1);   g.fillRect(x + 12, y - 14, 10, 20); g.fillRect(x + 24, y - 10, 8, 16);
+  g.fillStyle(0xaaaaaa, 1);
+  g.fillTriangle(x + 11, y + 8, x + 14, y + 17, x + 9, y + 15);
+  g.fillTriangle(x + 16, y + 8, x + 18, y + 17, x + 14, y + 15);
+  g.fillTriangle(x + 21, y + 8, x + 23, y + 17, x + 19, y + 15);
+  // neck
+  g.lineStyle(20, grnDk, 1); g.beginPath(); g.moveTo(x + 20, y - 50); g.lineTo(x + 44, y - 72); g.lineTo(x + 58, y - 66); g.strokePath();
+  g.lineStyle(15, grn, 1);   g.beginPath(); g.moveTo(x + 20, y - 50); g.lineTo(x + 44, y - 72); g.lineTo(x + 58, y - 66); g.strokePath();
+  g.fillStyle(scl, 1);
+  [[x + 22, y - 54],[x + 30, y - 60],[x + 38, y - 66],[x + 46, y - 70]].forEach(([sx,sy]) =>
+    g.fillTriangle(sx - 3, sy, sx + 3, sy, sx, sy - 9));
+  // head
+  g.fillStyle(grnDk, 1); g.fillEllipse(x + 62, y - 66, 40, 26);
+  g.fillStyle(grn, 1);   g.fillEllipse(x + 60, y - 68, 36, 24);
+  // snout
+  g.fillStyle(grnDk, 1); g.fillRect(x + 68, y - 76, 24, 16);
+  g.fillStyle(grn, 1);   g.fillRect(x + 70, y - 74, 20, 13);
+  // eye
+  g.fillStyle(0xffcc00, 1); g.fillCircle(x + 59, y - 70, 5);
+  g.fillStyle(0x000000, 1); g.fillEllipse(x + 59, y - 70, 3, 6);
+  g.fillStyle(0xffffff, 1); g.fillCircle(x + 60, y - 72, 1.5);
+  // nostril
+  g.fillStyle(grnDk, 1); g.fillCircle(x + 86, y - 72, 2.5);
+  // horns
+  g.fillStyle(0x8a6a22, 1);
+  g.fillTriangle(x + 52, y - 76, x + 56, y - 76, x + 47, y - 94);
+  g.fillTriangle(x + 58, y - 77, x + 62, y - 77, x + 57, y - 92);
+  // fire breath!
+  g.fillStyle(0xff6600, 0.25); g.fillTriangle(x + 92, y - 69, x + 160, y - 84, x + 158, y - 54);
+  g.fillStyle(0xff8800, 0.45); g.fillTriangle(x + 92, y - 69, x + 148, y - 78, x + 146, y - 60);
+  g.fillStyle(0xffcc00, 0.65); g.fillTriangle(x + 92, y - 69, x + 134, y - 74, x + 132, y - 64);
+  g.fillStyle(0xffffff, 0.85); g.fillTriangle(x + 92, y - 69, x + 114, y - 71, x + 112, y - 67);
+  return g;
+}
+
+function drawTitleCyclops(scene, x, y) {
+  const g = scene.add.graphics();
+  const skin = 0xc06618, skinDk = 0x7a3e0c, skinLt = 0xde8840;
+  // shadow
+  g.fillStyle(0x000000, 0.22); g.fillEllipse(x, y + 3, 88, 15);
+  // feet/sandals
+  g.fillStyle(0x4a2c10, 1); g.fillRect(x - 30, y - 5, 26, 9); g.fillRect(x + 4, y - 5, 26, 9);
+  // legs
+  g.fillStyle(skinDk, 1); g.fillRect(x - 26, y - 46, 21, 44); g.fillRect(x + 5, y - 46, 21, 44);
+  g.fillStyle(skin, 1);   g.fillRect(x - 24, y - 46, 17, 44); g.fillRect(x + 7, y - 46, 17, 44);
+  // loincloth
+  g.fillStyle(0x6a4a2a, 1); g.fillRect(x - 24, y - 46, 48, 18);
+  g.fillStyle(0x8a6a3a, 0.4); g.fillRect(x - 22, y - 44, 44, 15);
+  // torso barrel chest
+  g.fillStyle(skinDk, 1); g.fillRect(x - 32, y - 108, 64, 66);
+  g.fillStyle(skin, 1);   g.fillRect(x - 30, y - 106, 60, 64);
+  g.fillStyle(skinLt, 0.25); g.fillRect(x - 26, y - 104, 16, 60);
+  // left arm (hanging)
+  g.fillStyle(skinDk, 1); g.fillRect(x - 50, y - 102, 22, 58); g.fillRect(x - 54, y - 46, 28, 12);
+  g.fillStyle(skin, 1);   g.fillRect(x - 48, y - 100, 18, 56);
+  // right arm (club raised)
+  g.fillStyle(skinDk, 1); g.fillRect(x + 28, y - 110, 22, 62);
+  g.fillStyle(skin, 1);   g.fillRect(x + 30, y - 108, 18, 58);
+  // club
+  g.fillStyle(0x4a2c08, 1); g.fillRect(x + 36, y - 162, 16, 56);
+  g.fillStyle(0x5a3c18, 1); g.fillRect(x + 38, y - 160, 12, 52);
+  g.fillStyle(0x3a2008, 1); g.fillRect(x + 32, y - 166, 26, 12); // club head
+  g.fillStyle(0x5a4028, 1); g.fillRect(x + 34, y - 164, 22, 8);
+  g.fillStyle(0x888888, 1); g.fillCircle(x + 36, y - 168, 3); g.fillCircle(x + 45, y - 168, 3); g.fillCircle(x + 54, y - 168, 3);
+  // shoulder lumps
+  g.fillStyle(skinDk, 1); g.fillCircle(x - 32, y - 100, 12); g.fillCircle(x + 32, y - 100, 12);
+  g.fillStyle(skin, 1);   g.fillCircle(x - 30, y - 101, 9);  g.fillCircle(x + 30, y - 101, 9);
+  // neck
+  g.fillStyle(skinDk, 1); g.fillRect(x - 15, y - 120, 30, 16);
+  g.fillStyle(skin, 1);   g.fillRect(x - 13, y - 118, 26, 14);
+  // head (massive, slightly wide)
+  g.fillStyle(skinDk, 1); g.fillEllipse(x, y - 156, 74, 68);
+  g.fillStyle(skin, 1);   g.fillEllipse(x, y - 158, 70, 64);
+  g.fillStyle(skinLt, 0.2); g.fillEllipse(x - 14, y - 163, 30, 38);
+  // unibrow ridge
+  g.fillStyle(skinDk, 1);   g.fillRect(x - 30, y - 144, 60, 11);
+  g.fillStyle(0x2a1404, 1); g.fillEllipse(x, y - 148, 52, 9);
+  // THE EYE — giant single red glowing eye
+  g.fillStyle(0x330000, 1); g.fillCircle(x, y - 160, 20);
+  g.fillStyle(0xaa0000, 1); g.fillCircle(x, y - 160, 16);
+  g.fillStyle(0xdd1100, 1); g.fillCircle(x, y - 160, 11);
+  g.fillStyle(0xff3311, 1); g.fillCircle(x, y - 160, 7);
+  g.fillStyle(0xff8866, 0.7); g.fillCircle(x - 4, y - 164, 4); // highlight
+  g.fillStyle(0x000000, 1); g.fillEllipse(x, y - 160, 7, 12); // slit pupil
+  // eyelid shadow
+  g.fillStyle(skinDk, 0.7); g.fillRect(x - 21, y - 182, 42, 16);
+  // eyelashes (thick)
+  g.lineStyle(2, 0x1a0a00, 1);
+  for (let ex = -18; ex <= 18; ex += 6) { g.beginPath(); g.moveTo(x + ex, y - 181); g.lineTo(x + ex - 2, y - 190); g.strokePath(); }
+  // tusk
+  g.fillStyle(0xeeddaa, 1); g.fillTriangle(x - 16, y - 134, x - 9, y - 134, x - 13, y - 118);
+  g.fillStyle(0xffeebb, 1); g.fillTriangle(x - 15, y - 134, x - 10, y - 134, x - 12, y - 120);
+  // ears (big pointy)
+  g.fillStyle(skinDk, 1); g.fillTriangle(x - 42, y - 158, x - 34, y - 180, x - 28, y - 138);
+  g.fillStyle(skin, 1);   g.fillTriangle(x - 40, y - 157, x - 34, y - 176, x - 30, y - 140);
+  g.fillStyle(skinDk, 1); g.fillTriangle(x + 42, y - 158, x + 34, y - 180, x + 28, y - 138);
+  g.fillStyle(skin, 1);   g.fillTriangle(x + 40, y - 157, x + 34, y - 176, x + 30, y - 140);
+  // matted hair
+  g.fillStyle(0x1e0e04, 1); g.fillRect(x - 30, y - 190, 60, 18);
+  g.fillTriangle(x - 30, y - 190, x - 40, y - 166, x - 18, y - 170);
+  g.fillTriangle(x + 30, y - 190, x + 40, y - 166, x + 18, y - 170);
+  // red eye glow ambient
+  g.fillStyle(0xff2200, 0.07); g.fillCircle(x, y - 160, 36);
+  return g;
+}
+
+function drawTitleWarchief(scene, x, y) {
+  const g = scene.add.graphics();
+  const skin = 0x884422, skinDk = 0x562008, armor = 0x445566, armorLt = 0x6688aa;
+  const red = 0xcc1100;
+  // shadow
+  g.fillStyle(0x000000, 0.2); g.fillEllipse(x, y + 3, 62, 13);
+  // boots
+  g.fillStyle(0x1e1408, 1); g.fillRect(x - 24, y - 7, 22, 11); g.fillRect(x + 2, y - 7, 22, 11);
+  // legs
+  g.fillStyle(0x2a3344, 1); g.fillRect(x - 20, y - 40, 16, 36); g.fillRect(x + 4, y - 40, 16, 36);
+  g.fillStyle(armor, 1);   g.fillRect(x - 18, y - 40, 12, 36); g.fillRect(x + 6, y - 40, 12, 36);
+  // cape (behind body)
+  g.fillStyle(red, 0.75); g.fillTriangle(x - 24, y - 86, x + 24, y - 86, x + 30, y - 8);
+  g.fillStyle(red, 0.55); g.fillTriangle(x - 24, y - 86, x + 24, y - 86, x - 30, y - 8);
+  // torso
+  g.fillStyle(0x2a3344, 1); g.fillRect(x - 24, y - 90, 48, 54);
+  g.fillStyle(armor, 1);   g.fillRect(x - 22, y - 88, 44, 52);
+  g.fillStyle(armorLt, 0.35); g.fillRect(x - 20, y - 86, 11, 48);
+  // chest plate divider + skull icon
+  g.lineStyle(2, 0x223355, 1);
+  g.beginPath(); g.moveTo(x, y - 90); g.lineTo(x, y - 38); g.strokePath();
+  g.beginPath(); g.moveTo(x - 22, y - 66); g.lineTo(x + 22, y - 66); g.strokePath();
+  g.fillStyle(0x776644, 1); g.fillCircle(x, y - 68, 7);
+  g.fillStyle(0x1a0c00, 1); g.fillCircle(x - 2, y - 70, 2); g.fillCircle(x + 2, y - 70, 2);
+  g.fillStyle(0x1a0c00, 1); g.fillRect(x - 3, y - 64, 6, 3);
+  // shoulder guards
+  g.fillStyle(0x223355, 1); g.fillRect(x - 36, y - 94, 16, 22); g.fillRect(x + 20, y - 94, 16, 22);
+  g.fillStyle(armor, 1);   g.fillRect(x - 34, y - 92, 12, 20); g.fillRect(x + 22, y - 92, 12, 20);
+  // right arm + battleaxe
+  g.fillStyle(0x223355, 1); g.fillRect(x + 30, y - 86, 15, 46);
+  g.fillStyle(armor, 1);   g.fillRect(x + 32, y - 84, 11, 44);
+  g.fillStyle(0x4a2c0a, 1); g.fillRect(x + 38, y - 104, 7, 68); // axe handle
+  g.fillStyle(0x5a3c1a, 1); g.fillRect(x + 40, y - 102, 4, 64);
+  g.fillStyle(0x8899aa, 1); // axe head
+  g.fillTriangle(x + 38, y - 104, x + 64, y - 126, x + 66, y - 88);
+  g.fillTriangle(x + 38, y - 104, x + 12, y - 126, x + 10, y - 88);
+  g.fillStyle(0xaabbcc, 0.6);
+  g.fillTriangle(x + 40, y - 102, x + 62, y - 122, x + 64, y - 91);
+  g.lineStyle(2, 0xddeeff, 0.8);
+  g.beginPath(); g.moveTo(x + 64, y - 126); g.lineTo(x + 64, y - 88); g.strokePath();
+  // left arm
+  g.fillStyle(0x223355, 1); g.fillRect(x - 45, y - 86, 15, 46);
+  g.fillStyle(armor, 1);   g.fillRect(x - 43, y - 84, 11, 44);
+  g.fillStyle(skin, 1);    g.fillRect(x - 46, y - 42, 16, 14);
+  // neck
+  g.fillStyle(skinDk, 1); g.fillRect(x - 11, y - 104, 22, 16);
+  g.fillStyle(skin, 1);   g.fillRect(x - 9, y - 102, 18, 14);
+  // horned helmet
+  g.fillStyle(0x223355, 1); g.fillEllipse(x, y - 126, 48, 34);
+  g.fillStyle(armor, 1);   g.fillEllipse(x, y - 128, 44, 30);
+  g.fillStyle(0x223355, 1); g.fillRect(x - 26, y - 116, 52, 12); // helmet brim
+  g.fillStyle(armor, 1);   g.fillRect(x - 24, y - 115, 48, 10);
+  // horns (pair, curved)
+  g.fillStyle(0xaaaaaa, 1);
+  g.fillTriangle(x - 22, y - 128, x - 18, y - 128, x - 32, y - 158);
+  g.fillTriangle(x + 22, y - 128, x + 18, y - 128, x + 32, y - 158);
+  g.fillStyle(0xcccccc, 0.45);
+  g.fillTriangle(x - 21, y - 128, x - 19, y - 128, x - 30, y - 154);
+  g.fillTriangle(x + 21, y - 128, x + 19, y - 128, x + 30, y - 154);
+  // helmet face opening
+  g.fillStyle(skinDk, 1); g.fillRect(x - 14, y - 120, 28, 18);
+  g.fillStyle(skin, 1);   g.fillRect(x - 12, y - 118, 24, 16);
+  // orc glowing red eyes
+  g.fillStyle(0xff2200, 1); g.fillCircle(x - 7, y - 113, 3); g.fillCircle(x + 7, y - 113, 3);
+  // tusks
+  g.fillStyle(0xeeddaa, 1);
+  g.fillTriangle(x - 7, y - 106, x - 3, y - 106, x - 5, y - 96);
+  g.fillTriangle(x + 7, y - 106, x + 3, y - 106, x + 5, y - 96);
+  // warpaint stripe
+  g.fillStyle(red, 0.65); g.fillRect(x - 12, y - 115, 24, 4);
+  return g;
+}
+
+function drawTitleBoneDragon(scene, x, y) {
+  const g = scene.add.graphics();
+  const bone = 0xdddcc6, boneDk = 0xa8a896, boneLt = 0xeeeedc;
+  const soul = 0x6600cc;
+  // shadow
+  g.fillStyle(0x000000, 0.18); g.fillEllipse(x + 8, y + 4, 130, 16);
+  // tail
+  g.lineStyle(18, boneDk, 1); g.beginPath(); g.moveTo(x - 16, y - 12); g.lineTo(x - 58, y + 6); g.lineTo(x - 82, y - 10); g.strokePath();
+  g.lineStyle(12, bone, 1);   g.beginPath(); g.moveTo(x - 16, y - 12); g.lineTo(x - 58, y + 6); g.lineTo(x - 82, y - 10); g.strokePath();
+  g.fillStyle(boneDk, 1); g.fillTriangle(x - 78, y - 9, x - 86, y - 7, x - 94, y - 18);
+  // tail vertebrae knobs
+  for (let i = 0; i < 5; i++) {
+    const tx = x - 20 - i * 13, ty = y - 10 + i * 3;
+    g.fillStyle(boneDk, 1); g.fillCircle(tx, ty, 5);
+    g.fillStyle(boneLt, 1); g.fillCircle(tx - 1, ty - 1, 3);
   }
+  // left wing (large, skeletal)
+  g.lineStyle(8, boneDk, 1);  g.beginPath(); g.moveTo(x - 8, y - 66); g.lineTo(x - 96, y - 138); g.strokePath();
+  g.lineStyle(5, boneLt, 0.8); g.beginPath(); g.moveTo(x - 8, y - 66); g.lineTo(x - 94, y - 136); g.strokePath();
+  g.lineStyle(4, boneDk, 1);
+  g.beginPath(); g.moveTo(x - 94, y - 136); g.lineTo(x - 44, y - 32); g.strokePath();
+  g.beginPath(); g.moveTo(x - 94, y - 136); g.lineTo(x - 82, y - 32); g.strokePath();
+  g.beginPath(); g.moveTo(x - 94, y - 136); g.lineTo(x - 118, y - 54); g.strokePath();
+  // wing membranes (ragged)
+  g.fillStyle(0x8888a0, 0.18); g.fillTriangle(x - 94, y - 136, x - 44, y - 32, x - 82, y - 32);
+  g.fillStyle(0x8888a0, 0.13); g.fillTriangle(x - 94, y - 136, x - 82, y - 32, x - 118, y - 54);
+  // membrane decay holes
+  g.fillStyle(0x14100c, 1); g.fillCircle(x - 70, y - 92, 9); g.fillCircle(x - 52, y - 70, 6); g.fillCircle(x - 100, y - 58, 5);
+  // right wing (smaller)
+  g.lineStyle(6, boneDk, 1); g.beginPath(); g.moveTo(x + 12, y - 62); g.lineTo(x + 76, y - 118); g.strokePath();
+  g.lineStyle(4, boneDk, 1);
+  g.beginPath(); g.moveTo(x + 76, y - 118); g.lineTo(x + 44, y - 32); g.strokePath();
+  g.beginPath(); g.moveTo(x + 76, y - 118); g.lineTo(x + 86, y - 44); g.strokePath();
+  g.fillStyle(0x8888a0, 0.13); g.fillTriangle(x + 76, y - 118, x + 44, y - 32, x + 86, y - 44);
+  // body (ribcage)
+  g.fillStyle(boneDk, 1); g.fillEllipse(x + 6, y - 36, 58, 54);
+  g.fillStyle(bone, 1);   g.fillEllipse(x + 4, y - 38, 54, 50);
+  // ribs
+  g.lineStyle(3, boneDk, 0.8);
+  for (let i = 0; i < 4; i++) {
+    const ry = y - 54 + i * 11;
+    g.beginPath(); g.moveTo(x - 12, ry); g.lineTo(x - 24, ry + 9); g.strokePath();
+    g.beginPath(); g.moveTo(x + 20, ry); g.lineTo(x + 32, ry + 9); g.strokePath();
+  }
+  // spine vertebrae
+  for (let i = 0; i < 5; i++) {
+    g.fillStyle(boneDk, 1); g.fillCircle(x + 4, y - 60 + i * 11, 5);
+    g.fillStyle(boneLt, 1); g.fillCircle(x + 3, y - 61 + i * 11, 3);
+  }
+  // front leg + claws
+  g.fillStyle(boneDk, 1); g.fillRect(x + 6, y - 16, 11, 24);
+  g.fillStyle(bone, 1);   g.fillRect(x + 8, y - 16, 7, 22);
+  g.fillStyle(boneDk, 1);
+  g.fillTriangle(x + 6, y + 8, x + 10, y + 18, x + 7, y + 16);
+  g.fillTriangle(x + 11, y + 8, x + 14, y + 18, x + 12, y + 16);
+  g.fillTriangle(x + 15, y + 8, x + 18, y + 17, x + 16, y + 15);
+  // neck bones
+  g.fillStyle(boneDk, 1); g.fillRect(x + 16, y - 76, 13, 46);
+  g.fillStyle(bone, 1);   g.fillRect(x + 18, y - 74, 9, 44);
+  // neck vertebrae + dorsal spikes
+  for (let i = 0; i < 4; i++) {
+    g.fillStyle(boneDk, 1); g.fillRect(x + 14, y - 66 + i * 11, 17, 7);
+    g.fillStyle(boneLt, 0.65); g.fillRect(x + 16, y - 65 + i * 11, 13, 5);
+    g.fillStyle(boneDk, 1); g.fillTriangle(x + 15, y - 67 + i * 11, x + 27, y - 67 + i * 11, x + 21, y - 80 + i * 11);
+  }
+  // skull head
+  g.fillStyle(boneDk, 1); g.fillEllipse(x + 32, y - 98, 56, 44);
+  g.fillStyle(bone, 1);   g.fillEllipse(x + 30, y - 100, 52, 42);
+  g.fillStyle(boneLt, 0.4); g.fillEllipse(x + 20, y - 104, 20, 24);
+  // snout upper + lower jaw
+  g.fillStyle(boneDk, 1); g.fillRect(x + 40, y - 96, 30, 16); g.fillRect(x + 40, y - 82, 28, 12);
+  g.fillStyle(bone, 1);   g.fillRect(x + 42, y - 94, 26, 12); g.fillRect(x + 42, y - 80, 24, 10);
+  // teeth
+  g.fillStyle(boneLt, 1);
+  for (let i = 0; i < 5; i++) {
+    g.fillTriangle(x + 42 + i * 5, y - 84, x + 44 + i * 5, y - 84, x + 43 + i * 5, y - 91);
+    g.fillTriangle(x + 42 + i * 5, y - 80, x + 44 + i * 5, y - 80, x + 43 + i * 5, y - 73);
+  }
+  // skull eye sockets (dark hollow)
+  g.fillStyle(0x0e0016, 1); g.fillCircle(x + 18, y - 102, 11); g.fillCircle(x + 36, y - 102, 10);
+  // soul fire eyes (purple)
+  g.fillStyle(soul, 0.35); g.fillCircle(x + 18, y - 102, 8);
+  g.fillStyle(soul, 0.7);  g.fillCircle(x + 18, y - 102, 5);
+  g.fillStyle(0xbb66ff, 1); g.fillCircle(x + 18, y - 102, 2.5);
+  g.fillStyle(soul, 0.35); g.fillCircle(x + 36, y - 102, 7);
+  g.fillStyle(soul, 0.7);  g.fillCircle(x + 36, y - 102, 4);
+  g.fillStyle(0xbb66ff, 1); g.fillCircle(x + 36, y - 102, 2);
+  // skull horn
+  g.fillStyle(boneDk, 1); g.fillTriangle(x + 16, y - 116, x + 22, y - 116, x + 16, y - 140);
+  g.fillStyle(boneLt, 0.45); g.fillTriangle(x + 17, y - 117, x + 21, y - 117, x + 17, y - 136);
+  // ambient purple glow from eyes
+  g.fillStyle(soul, 0.05); g.fillCircle(x + 27, y - 102, 34);
   return g;
 }
 
@@ -1366,14 +1657,15 @@ function createTitle() {
 
   // ---- Scene actors ----
   drawTitleCastle(scene, 400, 392);
-  drawTitleTower(scene, 150, 430, 'arrow');
-  drawTitleTower(scene, 235, 446, 'cannon');
-  drawTitleKnight(scene, 300, 430);
-  // enemy horde massing on the right
-  drawTitleEnemy(scene, 600, 440, 1.3, 0x3a5a22);
-  drawTitleEnemy(scene, 680, 452, 1.0, 0x6a2a2a);
-  drawTitleEnemy(scene, 740, 436, 1.1, 0x4a3a1a);
-  drawTitleEnemy(scene, 645, 470, 0.85, 0x2a4a3a);
+  // good guys (left): tower background, then dragon, then titan, knight anchors center-left
+  drawTitleCrossbowTower(scene, 128, 474);
+  drawTitleGreenDragon(scene, 72, 462);
+  drawTitleTitan(scene, 228, 478);
+  drawTitleKnight(scene, 310, 434);
+  // bad guys (right): cyclops, warchief, bone dragon
+  drawTitleCyclops(scene, 518, 478);
+  drawTitleWarchief(scene, 630, 475);
+  drawTitleBoneDragon(scene, 730, 470);
 
   // ---- Title text ----
   const t1 = scene.add.text(W/2, 70, 'CASTLE', {
@@ -1419,16 +1711,43 @@ function createTitle() {
     const label = scene.add.text(bx, 498, m.name, { fontSize: '15px', fontFamily: 'Arial Black', color: '#dddddd' }).setOrigin(0.5);
     bg.on('pointerover', () => { if (k !== currentDifficulty) bg.setFillStyle(Phaser.Display.Color.HexStringToColor(m.color).color, 0.55); });
     bg.on('pointerout',  () => refreshDiff());
-    bg.on('pointerdown', () => { currentDifficulty = k; SFX.play('place_tower'); refreshDiff(); });
+    bg.on('pointerdown', () => {
+      currentDifficulty = k;
+      if (k !== 'heroic') infinityMode = false;
+      SFX.play('place_tower');
+      refreshDiff();
+      refreshInfinity();
+    });
     diffBtns[k] = { bg, label };
     bx += bw + gap;
   }
   refreshDiff();
 
+  // ---- Infinity Mode toggle (Heroic only) ----
+  const infBg  = scene.add.rectangle(W/2, 548, 200, 26, 0x1a1a2e).setInteractive({ useHandCursor: true }).setDepth(5);
+  infBg.setStrokeStyle(2, 0x884400);
+  const infTxt = scene.add.text(W/2, 548, '∞  Infinity Mode', {
+    fontSize: '13px', fontFamily: 'Arial Black', color: '#ff8822'
+  }).setOrigin(0.5).setDepth(6);
+  function refreshInfinity() {
+    const show = currentDifficulty === 'heroic';
+    infBg.setVisible(show); infTxt.setVisible(show);
+    infBg.setFillStyle(infinityMode ? 0x884400 : 0x1a1a2e);
+    infBg.setStrokeStyle(2, infinityMode ? 0xffaa44 : 0x884400);
+    infTxt.setColor(infinityMode ? '#ffdd88' : '#ff8822');
+  }
+  infBg.on('pointerdown', () => {
+    if (currentDifficulty !== 'heroic') return;
+    infinityMode = !infinityMode;
+    SFX.play('place_tower');
+    refreshInfinity();
+  });
+  refreshInfinity();
+
   // ---- Start button ----
-  const startBg = scene.add.rectangle(W/2, 566, 260, 46, 0x2a8a2a).setInteractive({ useHandCursor: true });
+  const startBg = scene.add.rectangle(W/2, 582, 260, 46, 0x2a8a2a).setInteractive({ useHandCursor: true });
   startBg.setStrokeStyle(3, 0xffd700);
-  const startTxt = scene.add.text(W/2, 566, '▶  START GAME', {
+  const startTxt = scene.add.text(W/2, 582, '▶  START GAME', {
     fontSize: '22px', fontFamily: 'Arial Black', color: '#ffffff', stroke: '#0a2a0a', strokeThickness: 3
   }).setOrigin(0.5);
   startBg.on('pointerover', () => { startBg.setFillStyle(0x33aa33); startTxt.setScale(1.05); });
@@ -1545,16 +1864,20 @@ function createWorldMap() {
   const active = firstUndefeatedLand();
   // Draw each land node in its state
   for (const land of LAND_ORDER) {
-    const state = landDefended[land] ? 'defended' : (land === active ? 'active' : 'locked');
-    const objs = drawLandNode(scene, land, state);
-    if (state === 'active') {
-      // make the node clickable
+    const clickable = infinityMode || land === active;
+    const state = landDefended[land] ? 'defended' : (clickable ? 'active' : 'locked');
+    drawLandNode(scene, land, state);
+    if (clickable) {
       const n = MAP_NODES[land];
       const hit = scene.add.circle(n.x, n.y, 52, 0xffffff, 0).setInteractive({ useHandCursor: true }).setDepth(13);
+      if (infinityMode) {
+        // gold glow to signal infinity availability
+        const ring = scene.add.circle(n.x, n.y, 56, 0xffaa00, 0).setDepth(12);
+        ring.setStrokeStyle(2, 0xffaa00, 0.6);
+      }
       hit.on('pointerdown', () => {
         hit.disableInteractive();
         SFX.play('place_tower');
-        // walk the knight to this land, then open it
         scene.tweens.add({
           targets: knight, x: n.x - 4, y: n.y + 18, duration: 850, ease: 'Sine.inOut',
           onComplete: () => { restartFaction = land; scene.scene.start('game'); }
@@ -1928,6 +2251,13 @@ let dragStartX = 0, dragStartY = 0; // pointer position at drag start
 const MOVE_COST_PCT = 0.5;  // move cost = this fraction of the tower's total invested gold
 let interestTimer = 0;
 const INTEREST_INTERVAL = 10000, INTEREST_RATE = 0.02;
+const SPEED_STEPS = [0.75, 1, 1.25, 1.5, 1.75, 2];
+let gameSpeed = 1;
+let speedSlider = null;
+const MINE_UPGRADE_COSTS = [200, 400, 800];
+let mineLevel = 0;       // 0=not built, 1=2%, 2=3%, 3=4%, 4=5%
+let mineGfxGroup = [];
+let minePanel = null;
 
 let livesText, goldText, waveText, landText, statusText, interestText, factionText;
 let upgradePanel;
@@ -1936,15 +2266,13 @@ function refreshShop() {
   if (!scene_ref) return;
   for (const [key, entry] of Object.entries(scene_ref._shopBtns)) {
     const def = TOWER_TYPES[key];
-    const mineUsed = key === 'mine' && towers.some(t => t.isMine);
-    const locked = localWave() < def.unlockWave || mineUsed;
+    const locked = localWave() < def.unlockWave;
     entry.bg.setFillStyle(locked ? 0x1a1a1a : 0x222244);
     entry.bg.setStrokeStyle(2, key === selectedTowerType && !locked ? 0xffd700 : (locked ? 0x333333 : 0x444466));
     entry.nameTxt.setColor(locked ? '#555555' : '#ffffff');
     entry.costTxt.setColor(locked ? '#554400' : '#ffd700');
     entry.descTxt.setColor(locked ? '#444444' : '#aaaaaa');
-    entry.lockTxt.setText(mineUsed ? '✓ Built' : (locked ? `🔒 Unlocks\nat Wave ${def.unlockWave}` : ''));
-    // If selected tower just unlocked, keep selection; if locked, switch to arrow
+    entry.lockTxt.setText(locked ? `🔒 Unlocks\nat Wave ${def.unlockWave}` : '');
     if (locked && selectedTowerType === key) selectedTowerType = null;
   }
 }
@@ -1995,6 +2323,72 @@ function landBossLabel(faction) {
   return boss ? boss.label : FACTIONS[faction].name;
 }
 
+function toggleSpeedSlider(scene, speedBtn) {
+  if (speedSlider) {
+    speedSlider.forEach(o => { if (o && o.destroy) o.destroy(); });
+    speedSlider = null;
+    return;
+  }
+
+  speedSlider = [];
+
+  const trackX1 = 530, trackX2 = 770;
+  const trackW = trackX2 - trackX1;
+  const trackY = HUD_H + 30;
+  const stopXs = SPEED_STEPS.map((_, i) => trackX1 + i * trackW / (SPEED_STEPS.length - 1));
+
+  // Panel background
+  const bg = scene.add.rectangle(650, trackY, trackW + 50, 52, 0x1a1a2e, 0.96).setDepth(20);
+  bg.setStrokeStyle(1, 0x555577);
+  speedSlider.push(bg);
+
+  // Track line
+  const gfx = scene.add.graphics().setDepth(21);
+  gfx.lineStyle(3, 0x444466, 1);
+  gfx.beginPath(); gfx.moveTo(trackX1, trackY); gfx.lineTo(trackX2, trackY); gfx.strokePath();
+  speedSlider.push(gfx);
+
+  // Ticks + labels
+  SPEED_STEPS.forEach((spd, i) => {
+    const x = stopXs[i];
+    const tg = scene.add.graphics().setDepth(21);
+    tg.lineStyle(2, 0x6666aa, 1);
+    tg.beginPath(); tg.moveTo(x, trackY - 7); tg.lineTo(x, trackY + 7); tg.strokePath();
+    speedSlider.push(tg);
+    const lbl = scene.add.text(x, trackY + 10, spd + 'x', {
+      fontSize: '9px', color: '#9999bb'
+    }).setOrigin(0.5, 0).setDepth(21);
+    speedSlider.push(lbl);
+  });
+
+  // Draggable thumb
+  const curIdx = Math.max(0, SPEED_STEPS.indexOf(gameSpeed));
+  const thumb = scene.add.circle(stopXs[curIdx], trackY, 10, 0xffd700).setDepth(22);
+  thumb.setStrokeStyle(2, 0xaa8800);
+  thumb.setInteractive({ draggable: true, useHandCursor: true });
+  scene.input.setDraggable(thumb);
+  speedSlider.push(thumb);
+
+  const updateBtn = () => {
+    const label = '⏩ ' + (gameSpeed === 1 ? '1x' : gameSpeed + 'x');
+    speedBtn.setText(label);
+    speedBtn.setColor(gameSpeed < 1 ? '#88ccff' : gameSpeed === 1 ? '#ffffff' : '#ffdd44');
+  };
+
+  thumb.on('drag', (ptr, dragX) => {
+    const cx = Math.max(trackX1, Math.min(trackX2, dragX));
+    thumb.x = cx;
+    let nearest = 0, minDist = Infinity;
+    stopXs.forEach((sx, i) => { const d = Math.abs(cx - sx); if (d < minDist) { minDist = d; nearest = i; } });
+    gameSpeed = SPEED_STEPS[nearest];
+    updateBtn();
+  });
+
+  thumb.on('dragend', () => {
+    thumb.x = stopXs[SPEED_STEPS.indexOf(gameSpeed)];
+  });
+}
+
 // Dramatic banner when the elite (second-half) horde arrives at wave 11
 function announceElite(scene, faction) {
   const msgs = {
@@ -2009,10 +2403,159 @@ function announceElite(scene, faction) {
   scene.tweens.add({ targets: t, alpha: 1, duration: 500, hold: 2600, yoyo: true, onComplete: () => t.destroy() });
 }
 
+// After wave 3: the people of the land build a mine near the castle
+function revealMine(scene, faction) {
+  mineLevel = 1;
+  const landName = FACTIONS[faction].name;
+  const msg = `The people of ${landName} have built a mine!\nYou will now earn 2% interest on your gold each wave.`;
+  const t = scene.add.text(400, 240, msg, {
+    fontSize: '17px', fontFamily: 'Arial Black', color: '#ffd700', align: 'center',
+    stroke: '#000', strokeThickness: 5
+  }).setOrigin(0.5).setDepth(40).setAlpha(0);
+  scene.tweens.add({ targets: t, alpha: 1, duration: 500, hold: 3200, yoyo: true, onComplete: () => t.destroy() });
+  SFX.play('unlock');
+  drawMineGfx(scene);
+}
+
+function drawMineGfx(scene) {
+  mineGfxGroup.forEach(o => { if (o && o.destroy) o.destroy(); });
+  mineGfxGroup = [];
+
+  const pathEndY = currentPath[currentPath.length - 1].y;
+  const lvl = CASTLE_LEVELS[castleLevel];
+  const cx = 800 - (CELL * lvl.cols) / 2 - 4;
+  const mx = cx - (CELL * lvl.cols) / 2 - 24;
+  const cellH = CELL * lvl.rows;
+  const my = Math.max(HUD_H + 30, pathEndY - cellH / 2 - 35); // above the castle
+
+  const g = scene.add.graphics().setDepth(6);
+  mineGfxGroup.push(g);
+
+  // Dark shaft
+  g.fillStyle(0x110a00, 1);
+  g.fillRect(mx - 12, my - 10, 24, 22);
+
+  // Wooden frame
+  g.fillStyle(0x7a4a20, 1);
+  g.fillRect(mx - 14, my - 13, 28, 5);
+  g.fillRect(mx - 14, my + 10, 28, 5);
+  g.fillRect(mx - 14, my - 13, 5, 28);
+  g.fillRect(mx + 9,  my - 13, 5, 28);
+
+  // Cross braces
+  g.lineStyle(2, 0x5a3010, 0.9);
+  g.beginPath(); g.moveTo(mx - 10, my - 8); g.lineTo(mx + 10, my + 8); g.strokePath();
+  g.beginPath(); g.moveTo(mx + 10, my - 8); g.lineTo(mx - 10, my + 8); g.strokePath();
+
+  // Gold vein flecks
+  g.fillStyle(0xffd700, 0.85);
+  g.fillRect(mx - 8, my - 4, 3, 2);
+  g.fillRect(mx + 5, my + 1, 4, 2);
+  g.fillRect(mx - 2, my + 5, 2, 3);
+  g.fillRect(mx + 2, my - 6, 3, 2);
+
+  // Outline
+  g.lineStyle(2, 0x886633, 0.8);
+  g.strokeRect(mx - 14, my - 13, 28, 41);
+
+  // Interest rate badge background
+  g.fillStyle(0x443300, 0.9);
+  g.fillRoundedRect(mx - 16, my + 16, 32, 14, 3);
+
+  const pct = INTEREST_RATE * 100 + (mineLevel - 1);
+  const badge = scene.add.text(mx, my + 23, `+${pct}%`, {
+    fontSize: '9px', fontFamily: 'Arial Black', color: '#ffd700'
+  }).setOrigin(0.5).setDepth(7);
+  mineGfxGroup.push(badge);
+
+  const label = scene.add.text(mx, my + 36, '⛏️ Mine', {
+    fontSize: '8px', color: '#ccaa66'
+  }).setOrigin(0.5).setDepth(7);
+  mineGfxGroup.push(label);
+
+  // Click zone
+  const hit = scene.add.rectangle(mx, my + 10, 36, 60, 0xffffff, 0).setDepth(8).setInteractive({ useHandCursor: true });
+  mineGfxGroup.push(hit);
+  hit.on('pointerdown', () => showMinePanel(scene, mx, my));
+  hit.on('pointerover', () => { g.lineStyle(2, 0xffd700, 1); g.strokeRect(mx - 14, my - 13, 28, 41); });
+  hit.on('pointerout',  () => { g.lineStyle(2, 0x886633, 0.8); g.strokeRect(mx - 14, my - 13, 28, 41); });
+}
+
+function showMinePanel(scene, mx, my) {
+  if (minePanel) { minePanel.destroy(); minePanel = null; return; }
+
+  const panelW = 170, panelH = mineLevel < 4 ? 120 : 100;
+  const px = mx - panelW - 10;
+  const py = Math.max(HUD_H + 5, Math.min(my - panelH / 2, 520 - panelH));
+
+  const container = scene.add.container(px, py).setDepth(30);
+  minePanel = container;
+
+  const bg = scene.add.rectangle(0, 0, panelW, panelH, 0x1a1a2e, 0.95).setOrigin(0, 0);
+  bg.setStrokeStyle(2, 0x886633);
+  container.add(bg);
+
+  const title = scene.add.text(panelW / 2 + 10, 12, '⛏️  Mine', {
+    fontSize: '13px', fontFamily: 'Arial Black', color: '#ffd700'
+  }).setOrigin(0.5, 0);
+  container.add(title);
+
+  const curPct = INTEREST_RATE * 100 + (mineLevel - 1);
+  const info = scene.add.text(panelW / 2, 32, `Earning ${curPct}% interest\nevery 10 seconds`, {
+    fontSize: '10px', color: '#aaffaa', align: 'center'
+  }).setOrigin(0.5, 0);
+  container.add(info);
+
+  const closeBtn = scene.add.text(8, 6, '✕', {
+    fontSize: '12px', color: '#ff6666'
+  }).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+  closeBtn.on('pointerdown', () => { minePanel.destroy(); minePanel = null; });
+  container.add(closeBtn);
+
+  if (mineLevel < 4) {
+    const upgCost = MINE_UPGRADE_COSTS[mineLevel - 1];
+    const newPct = curPct + 1;
+    const canAfford = gold >= upgCost;
+
+    const upgBg = scene.add.rectangle(panelW / 2, 82, panelW - 20, 28, canAfford ? 0x226622 : 0x662222).setOrigin(0.5, 0.5);
+    upgBg.setInteractive({ useHandCursor: true });
+    container.add(upgBg);
+
+    const upgTxt = scene.add.text(panelW / 2, 82, `Upgrade to ${newPct}%  (${upgCost}g)`, {
+      fontSize: '10px', fontFamily: 'Arial Black', color: canAfford ? '#aaffaa' : '#ff8888', align: 'center'
+    }).setOrigin(0.5);
+    container.add(upgTxt);
+
+    if (canAfford) {
+      upgBg.on('pointerdown', () => {
+        gold -= upgCost;
+        goldText.setText('💰 Gold: ' + gold);
+        mineLevel++;
+        SFX.play('unlock');
+        minePanel.destroy(); minePanel = null;
+        drawMineGfx(scene);
+      });
+    }
+  } else {
+    const maxTxt = scene.add.text(panelW / 2, 82, 'MAX LEVEL  ★★★', {
+      fontSize: '11px', fontFamily: 'Arial Black', color: '#ffd700'
+    }).setOrigin(0.5);
+    container.add(maxTxt);
+  }
+}
+
 function showGameOver(scene) {
   const survived = wave - 1;
+  const landWaveEnd = FACTIONS[restartFaction].waves[1];
+  const infWavesSurvived = infinityMode ? Math.max(0, localWave(survived) - 20) : 0;
+
+  if (infinityMode && infWavesSurvived > 0) {
+    const prevBest = parseInt(localStorage.getItem('td_best_infinity') || '0');
+    const isNewBest = infWavesSurvived > prevBest;
+    if (isNewBest) localStorage.setItem('td_best_infinity', infWavesSurvived);
+  }
   const prev = parseInt(localStorage.getItem('td_best_wave') || '0');
-  const isNewBest = survived > prev;
+  const isNewBest = !infinityMode && survived > prev;
   if (isNewBest) localStorage.setItem('td_best_wave', survived);
   const best = isNewBest ? survived : prev;
 
@@ -2022,24 +2565,39 @@ function showGameOver(scene) {
     fontSize: '64px', fontFamily: 'Arial Black', color: '#ff2200',
     stroke: '#000000', strokeThickness: 8
   }).setOrigin(0.5).setDepth(51);
-  scene.add.text(400, 258, `Survived ${survived} wave${survived !== 1 ? 's' : ''}`, {
-    fontSize: '28px', color: '#ffffff', stroke: '#000', strokeThickness: 4
+  const survivedLabel = (infinityMode && infWavesSurvived > 0)
+    ? `Survived to ∞+${infWavesSurvived}`
+    : `Survived ${survived} wave${survived !== 1 ? 's' : ''}`;
+  scene.add.text(400, 258, survivedLabel, {
+    fontSize: '26px', color: '#ffffff', stroke: '#000', strokeThickness: 4
   }).setOrigin(0.5).setDepth(51);
 
-  // Fell to the land's boss
+  // Fell to...
   const faction = FACTIONS[getFactionForWave(wave)];
-  scene.add.text(400, 312, `Fell to: ${landBossLabel(getFactionForWave(wave))}`, {
-    fontSize: '22px', color: faction.color, stroke: '#000', strokeThickness: 3
+  const fellLabel = (infinityMode && infWavesSurvived > 0)
+    ? `∞ Infinity Run — ${FACTIONS[restartFaction].name}`
+    : `Fell to: ${landBossLabel(getFactionForWave(wave))}`;
+  scene.add.text(400, 308, fellLabel, {
+    fontSize: '20px', color: infinityMode ? '#ffaa44' : faction.color, stroke: '#000', strokeThickness: 3
   }).setOrigin(0.5).setDepth(51);
 
-  // Best wave
-  if (isNewBest && survived > 0) {
-    scene.add.text(400, 378, '🏆 NEW BEST!', {
+  // Best score line
+  if (infinityMode) {
+    const prevBestInf = parseInt(localStorage.getItem('td_best_infinity') || '0');
+    const isNewInfBest = infWavesSurvived > 0 && infWavesSurvived >= prevBestInf;
+    const bestInfLabel = isNewInfBest ? '🏆 NEW INFINITY BEST!' : `Best infinity run: ∞+${prevBestInf}`;
+    scene.add.text(400, 352, bestInfLabel, {
+      fontSize: isNewInfBest ? '20px' : '17px',
+      fontFamily: isNewInfBest ? 'Arial Black' : undefined,
+      color: isNewInfBest ? '#ffdd00' : '#aaaaaa', stroke: '#000', strokeThickness: 3
+    }).setOrigin(0.5).setDepth(51);
+  } else if (isNewBest && survived > 0) {
+    scene.add.text(400, 352, '🏆 NEW BEST!', {
       fontSize: '22px', fontFamily: 'Arial Black', color: '#ffdd00',
       stroke: '#000', strokeThickness: 4
     }).setOrigin(0.5).setDepth(51);
   } else {
-    scene.add.text(400, 378, `Best: Wave ${best}`, {
+    scene.add.text(400, 352, `Best: Wave ${best}`, {
       fontSize: '20px', color: '#aaaaaa', stroke: '#000', strokeThickness: 3
     }).setOrigin(0.5).setDepth(51);
   }
@@ -2156,6 +2714,11 @@ function create() {
   selectedTower = null; selectedTowerType = null; movingTower = null; movingTowerCharge = 0;
   draggingTower = null; castlePanel = null; interestTimer = 0;
   gameOver = false;
+  gameSpeed = 1;
+  if (speedSlider) { speedSlider.forEach(o => { if (o && o.destroy) o.destroy(); }); speedSlider = null; }
+  mineLevel = 0;
+  mineGfxGroup.forEach(o => { if (o && o.destroy) o.destroy(); }); mineGfxGroup = [];
+  if (minePanel) { minePanel.destroy(); minePanel = null; }
   castleLevel = 0; castleMaxHP = CASTLE_LEVELS[0].maxHP; castleHP = castleMaxHP; lives = castleHP;
   wave = FACTIONS[restartFaction].waves[0]; // start at the first wave of the land being played
   gold = diffMode().gold; // starting gold depends on chosen difficulty
@@ -2189,11 +2752,6 @@ function create() {
 
     bg.on('pointerdown', () => {
       if (localWave() < def.unlockWave) return; // still locked
-      if (key === 'mine' && towers.some(t => t.isMine)) {  // mine already built
-        statusText.setText('Only one mine allowed!');
-        this.time.delayedCall(1500, () => statusText.setText(''));
-        return;
-      }
       selectedTowerType = key;
       for (const [k, entry] of Object.entries(this._shopBtns)) {
         const isLocked = localWave() < TOWER_TYPES[k].unlockWave;
@@ -2256,14 +2814,6 @@ function create() {
     if (PATH_CELLS.has(key)) return;
     if (!selectedTowerType) return;   // nothing selected — require explicit shop pick
     const def = TOWER_TYPES[selectedTowerType];
-    // Only one mine allowed per land
-    if (selectedTowerType === 'mine' && towers.some(t => t.isMine)) {
-      statusText.setText('Only one mine allowed!');
-      this.time.delayedCall(1500, () => statusText.setText(''));
-      SFX.play('not_enough_gold');
-      deselectShop();
-      return;
-    }
     if (gold < def.cost) {
       statusText.setText('Not enough gold!');
       this.time.delayedCall(1500, () => statusText.setText(''));
@@ -2347,6 +2897,12 @@ function create() {
   // Sound toggle in the top-right corner
   const muteBtn = this.add.text(785, HUD_H/2, '🔊', { fontSize: '16px' }).setOrigin(0.5, 0.5).setDepth(10).setInteractive({ useHandCursor: true });
   muteBtn.on('pointerdown', () => { const m = SFX.toggleMute(); muteBtn.setText(m ? '🔇' : '🔊'); });
+
+  const speedBtn = this.add.text(737, HUD_H/2, '⏩ 1x', {
+    fontSize: '11px', fontFamily: 'Arial Black', color: '#ffffff',
+    backgroundColor: '#333355', padding: { x: 5, y: 2 }
+  }).setOrigin(0.5, 0.5).setDepth(10).setInteractive({ useHandCursor: true });
+  speedBtn.on('pointerdown', () => toggleSpeedSlider(scene_ref, speedBtn));
   interestText = this.add.text(400, 530, '',                           { fontSize: '13px', color: '#aaffaa', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(10);
   statusText   = this.add.text(400, 508, '',                           { fontSize: '20px', color: '#ffd700', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5, 1).setDepth(10);
   factionText  = null; // land name now shown only in the wave box; guards skip the old corner label
@@ -2713,12 +3269,13 @@ function drawMap(scene, factionKey) {
 function drawPath() {} // no-op — path is now drawn inside drawMap
 
 function update(time, delta) {
-  // ── Interest ──
-  if (waveActive) {
+  delta *= gameSpeed;
+  // ── Interest (only once the mine is built, after wave 3) ──
+  if (waveActive && mineLevel > 0) {
     interestTimer += delta;
     if (interestTimer >= INTEREST_INTERVAL) {
       interestTimer = 0;
-      const effectiveRate = INTEREST_RATE + getTotalMineBonus();
+      const effectiveRate = INTEREST_RATE + (mineLevel - 1) * 0.01;
       const earned = Math.floor(gold * effectiveRate);
       if (earned > 0) {
         gold += earned;
@@ -2788,7 +3345,9 @@ function update(time, delta) {
     waveActive = false;
     const prevWave = wave;
     wave++; waveSize += 3;
-    waveText.setText('Wave: ' + localWave());
+    const lw = localWave();
+    const waveLabel = (infinityMode && lw > 20) ? `∞+${lw - 20}` : String(lw);
+    waveText.setText('Wave: ' + waveLabel);
     refreshShop();
     SFX.play('wave_complete');
 
@@ -2796,12 +3355,20 @@ function update(time, delta) {
     const prevFaction = getFactionForWave(prevWave);
     const isLandEnd   = prevWave === FACTIONS[prevFaction].waves[1];
 
-    if (isLandEnd) {
-      // Disable wave button and show the land-complete overlay → returns to the world map
+    if (isLandEnd && !infinityMode) {
       this._waveBtn.removeInteractive();
       this._waveBtnText.setText('...');
       showLandComplete(scene_ref, prevFaction);
       return;
+    }
+    if (isLandEnd && infinityMode) {
+      const infWave = localWave(wave) - 20;
+      const t = scene_ref.add.text(400, 240,
+        `Wave 20 cleared!\nThe darkness grows... ∞+${infWave}`, {
+        fontSize: '18px', fontFamily: 'Arial Black', color: '#ffaa44', align: 'center',
+        stroke: '#000', strokeThickness: 5
+      }).setOrigin(0.5).setDepth(40).setAlpha(0);
+      scene_ref.tweens.add({ targets: t, alpha: 1, duration: 500, hold: 2400, yoyo: true, onComplete: () => t.destroy() });
     }
 
     // Normal wave complete
@@ -2809,6 +3376,8 @@ function update(time, delta) {
     const unlockMsg = justUnlocked.length ? ' 🔓 ' + justUnlocked.map(([,d]) => d.label).join(' & ') + ' unlocked!' : '';
     statusText.setText('Wave Complete!' + unlockMsg);
     if (justUnlocked.length) SFX.play('unlock');
+    // After wave 3 the land's people build a mine near the castle
+    if (localWave(wave) === 4 && mineLevel === 0) revealMine(this, getFactionForWave(wave));
     // Entering the second half — the land's lord sends elite reinforcements
     if (localWave(wave) === 11) announceElite(this, getFactionForWave(wave));
     this._waveBtn.setFillStyle(0xffd700).setInteractive();
