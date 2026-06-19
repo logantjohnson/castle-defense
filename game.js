@@ -70,15 +70,15 @@ const TOWER_TYPES = {
   pitch:  { label: 'Pitch',     cost: 75,  color: 0x442200, range: 100, damage: 8,   fireRate: 1500, projColor: 0x221100, projSpeed: 200,  dmgColor: '#886633', sfxFire: 'cannon',    sfxHit: 'cannon',    unlockWave: 0,  icon: '🏺', desc: 'Slows enemies',          upgrades: [45,  85,  150], slowPct: 0.20, slowPctPerLevel: 0.05 },
   cannon: { label: 'Cannon',    cost: 100, color: 0xff8800, range: 100, damage: 60,  fireRate: 2000, projColor: 0xff4400, projSpeed: 220,  dmgColor: '#ff8844', sfxFire: 'cannon',    sfxHit: 'cannon',    unlockWave: 0,  icon: '💣', desc: 'Slow, hard hit',         upgrades: [55,  100, 175] },
   sniper: { label: 'Trebuchet', cost: 150, color: 0xaa44ff, range: 220, damage: 45,  fireRate: 2500, projColor: 0xdd88ff, projSpeed: 500,  dmgColor: '#dd88ff', sfxFire: 'trebuchet', sfxHit: 'trebuchet', unlockWave: 0, icon: '🪨', desc: 'Long range',             upgrades: [65,  120, 210] },
-  tesla:  { label: 'Titan',     cost: 300, color: 0x88aacc, range: 150, damage: 160, fireRate: 1600, projColor: 0xeeeeff, projSpeed: 999,  dmgColor: '#aaddff', sfxFire: 'tesla',     sfxHit: 'tesla',     unlockWave: 7,  icon: '🗿', desc: 'Lightning bolts',        upgrades: [100, 175, 300] },
-  flame:  { label: 'Dragon',    cost: 450, color: 0x44bb44, range: 80,  damage: 250, fireRate: 550,  projColor: 0xff6600, projSpeed: 180,  dmgColor: '#ff4400', sfxFire: 'flame',     sfxHit: 'flame',     unlockWave: 13, icon: '🐉', desc: 'Fire breath, close range', upgrades: [120, 210, 360] },
+  tesla:  { label: 'Titan',     cost: 300, color: 0x88aacc, range: 150, damage: 115, fireRate: 1600, projColor: 0xeeeeff, projSpeed: 999,  dmgColor: '#aaddff', sfxFire: 'tesla',     sfxHit: 'tesla',     unlockWave: 7,  icon: '🗿', desc: 'Lightning bolts',        upgrades: [100, 175, 300] },
+  flame:  { label: 'Dragon',    cost: 450, color: 0x44bb44, range: 80,  damage: 185, fireRate: 650,  projColor: 0xff6600, projSpeed: 180,  dmgColor: '#ff4400', sfxFire: 'flame',     sfxHit: 'flame',     unlockWave: 11, icon: '🐉', desc: 'Fire breath, close range', upgrades: [120, 210, 360] },
 };
 
 // ── Enemy factions & types ────────────────────────────────────
 const FACTIONS = {
-  barbarian: { name: 'Desert Oasis',    color: '#cc3300', waves: [1,20],  difficulty: 1.00 },
-  undead:    { name: 'Mystical Forest', color: '#44aaaa', waves: [21,40], difficulty: 1.10 },
-  dark:      { name: 'Volcanic Peaks',  color: '#9933cc', waves: [41,60], difficulty: 1.20 },
+  barbarian: { name: 'Desert Oasis',    color: '#cc3300', waves: [1,15],  difficulty: 1.00 },
+  undead:    { name: 'Mystical Forest', color: '#44aaaa', waves: [16,30], difficulty: 1.10 },
+  dark:      { name: 'Volcanic Peaks',  color: '#9933cc', waves: [31,45], difficulty: 1.20 },
 };
 
 // ── Difficulty modes ──────────────────────────────────────────
@@ -96,40 +96,40 @@ function diffMode() { return DIFFICULTY_MODES[currentDifficulty]; }
 // shape: 'square' | 'circle' | 'diamond' | 'triangle'
 // bossOnly: true means only spawned as the wave boss, never in normal pool
 // wave = the GLOBAL wave an enemy first appears. Non-boss units unlock across local
-// waves 1/3/6/9/13; mini boss at local 10, big boss at local 20 (per 20-wave land).
+// waves 1/3/6/9/11; mini boss at local 10, big boss at local 15 (per 15-wave land).
 const ENEMY_TYPES = {
-  // ── Barbarian Faction (waves 1-20) ─────────────────────────
+  // ── Barbarian Faction (waves 1-15) ─────────────────────────
   goblin:         { label:'Goblin',         faction:'barbarian', color:0x44aa22, size:18, speedMult:1.6, hpMult:0.5,  reward:10,  lives:1, wave:1,  shape:'square'                    },
   wolf:           { label:'Wolf',           faction:'barbarian', color:0x997755, size:20, speedMult:2.0, hpMult:0.7,  reward:22,  lives:1, wave:1,  shape:'circle'                    },
   orc:            { label:'Orc',            faction:'barbarian', color:0x886600, size:24, speedMult:1.0, hpMult:1.0,  reward:18,  lives:1, wave:3,  shape:'square'                    },
   ogre:           { label:'Ogre',           faction:'barbarian', color:0xcc6600, size:32, speedMult:0.7, hpMult:3.0,  reward:40,  lives:2, wave:6,  shape:'square'                    },
   troll:          { label:'Troll',          faction:'barbarian', color:0x336633, size:30, speedMult:0.8, hpMult:4.0,  reward:50,  lives:2, wave:9,  shape:'circle'                    },
-  cyclops:        { label:'CYCLOPS',        faction:'barbarian', color:0xaa2200, size:44, speedMult:0.5, hpMult:9.0,  reward:120, lives:4, wave:13, shape:'diamond'                   },
-  iron_golem:     { label:'IRON GOLEM',     faction:'barbarian', color:0x7a7a82, size:42, speedMult:0.42,hpMult:11.0, reward:130, lives:4, wave:13, shape:'square',  noPrefix:true    },
+  cyclops:        { label:'CYCLOPS',        faction:'barbarian', color:0xaa2200, size:44, speedMult:0.5, hpMult:9.0,  reward:120, lives:4, wave:11, shape:'diamond'                   },
+  iron_golem:     { label:'IRON GOLEM',     faction:'barbarian', color:0x7a7a82, size:42, speedMult:0.42,hpMult:11.0, reward:130, lives:4, wave:11, shape:'square',  noPrefix:true    },
   warchief:       { label:'ORC WARCHIEF',   faction:'barbarian', color:0xcc1100, size:40, speedMult:0.5, hpMult:8.0,  reward:80,  lives:4, wave:10, shape:'diamond', bossOnly:true    },
-  barbarian_king: { label:'BARBARIAN KING', faction:'barbarian', color:0xff2200, size:52, speedMult:0.38,hpMult:20.0, reward:200, lives:6, wave:20, shape:'diamond', bossOnly:true    },
+  barbarian_king: { label:'BARBARIAN KING', faction:'barbarian', color:0xff2200, size:52, speedMult:0.38,hpMult:20.0, reward:200, lives:6, wave:15, shape:'diamond', bossOnly:true    },
 
-  // ── Undead Faction (waves 21-40) ───────────────────────────
-  skeleton:   { label:'Skeleton',    faction:'undead', color:0xddddcc, size:18, speedMult:1.2, hpMult:0.6,  reward:15,  lives:1, wave:21, shape:'square'                   },
-  zombie:     { label:'Zombie',      faction:'undead', color:0x558855, size:24, speedMult:0.7, hpMult:0.85, reward:25,  lives:1, wave:21, shape:'square'                   },
-  wight:      { label:'Wight',       faction:'undead', color:0x8899bb, size:22, speedMult:1.3, hpMult:1.7,  reward:30,  lives:1, wave:23, shape:'circle'                   },
-  vampire:    { label:'Vampire',     faction:'undead', color:0x880022, size:24, speedMult:1.7, hpMult:2.4,  reward:38,  lives:1, wave:26, shape:'diamond'                  },
-  lich:       { label:'Lich',        faction:'undead', color:0x553388, size:28, speedMult:0.9, hpMult:5.5,  reward:70,  lives:2, wave:29, shape:'square'                   },
-  bonedragon: { label:'BONE DRAGON', faction:'undead', color:0xeeeedd, size:46, speedMult:0.6, hpMult:13.0, reward:160, lives:5, wave:33, shape:'diamond'                  },
-  bone_colossus:{label:'BONE COLOSSUS',faction:'undead',color:0xddddc8, size:44, speedMult:0.42,hpMult:14.0, reward:150, lives:4, wave:33, shape:'square', noPrefix:true     },
-  lich_lord:  { label:'LICH LORD',   faction:'undead', color:0x4400aa, size:40, speedMult:0.5, hpMult:9.0,  reward:80,  lives:4, wave:30, shape:'diamond', bossOnly:true   },
-  death_lord: { label:'DEATH LORD',  faction:'undead', color:0x0011aa, size:52, speedMult:0.38,hpMult:23.0, reward:200, lives:6, wave:40, shape:'diamond', bossOnly:true   },
+  // ── Undead Faction (waves 16-30) ───────────────────────────
+  skeleton:   { label:'Skeleton',    faction:'undead', color:0xddddcc, size:18, speedMult:1.2, hpMult:0.6,  reward:15,  lives:1, wave:16, shape:'square'                   },
+  zombie:     { label:'Zombie',      faction:'undead', color:0x558855, size:24, speedMult:0.7, hpMult:0.85, reward:25,  lives:1, wave:16, shape:'square'                   },
+  wight:      { label:'Wight',       faction:'undead', color:0x8899bb, size:22, speedMult:1.3, hpMult:1.7,  reward:30,  lives:1, wave:18, shape:'circle'                   },
+  vampire:    { label:'Vampire',     faction:'undead', color:0x880022, size:24, speedMult:1.7, hpMult:2.4,  reward:38,  lives:1, wave:21, shape:'diamond'                  },
+  lich:       { label:'Lich',        faction:'undead', color:0x553388, size:28, speedMult:0.9, hpMult:5.5,  reward:70,  lives:2, wave:24, shape:'square'                   },
+  bonedragon: { label:'BONE DRAGON', faction:'undead', color:0xeeeedd, size:46, speedMult:0.6, hpMult:13.0, reward:160, lives:5, wave:26, shape:'diamond'                  },
+  bone_colossus:{label:'BONE COLOSSUS',faction:'undead',color:0xddddc8, size:44, speedMult:0.42,hpMult:14.0, reward:150, lives:4, wave:26, shape:'square', noPrefix:true     },
+  lich_lord:  { label:'LICH LORD',   faction:'undead', color:0x4400aa, size:40, speedMult:0.5, hpMult:9.0,  reward:80,  lives:4, wave:25, shape:'diamond', bossOnly:true   },
+  death_lord: { label:'DEATH LORD',  faction:'undead', color:0x0011aa, size:52, speedMult:0.38,hpMult:23.0, reward:200, lives:6, wave:30, shape:'diamond', bossOnly:true   },
 
-  // ── Dark Magic Faction (waves 41-60) ───────────────────────
-  centaur:      { label:'Centaur',      faction:'dark', color:0xbb6622, size:20, speedMult:1.8, hpMult:0.9,  reward:20,  lives:1, wave:41, shape:'square'                 },
-  gargoyle:     { label:'Gargoyle',     faction:'dark', color:0x777788, size:22, speedMult:1.5, hpMult:1.1,  reward:25,  lives:1, wave:41, shape:'diamond'                },
-  griffin:      { label:'Griffin',      faction:'dark', color:0xddaa00, size:26, speedMult:1.4, hpMult:2.3,  reward:35,  lives:1, wave:43, shape:'circle'                 },
-  minotaur:     { label:'Minotaur',     faction:'dark', color:0x553300, size:32, speedMult:0.9, hpMult:5.2,  reward:55,  lives:2, wave:46, shape:'square'                 },
-  hydra:        { label:'Hydra',        faction:'dark', color:0x224422, size:36, speedMult:0.7, hpMult:8.5,  reward:90,  lives:3, wave:49, shape:'circle'                 },
-  blackdragon:  { label:'BLACK DRAGON', faction:'dark', color:0x110011, size:50, speedMult:0.65,hpMult:20.0, reward:250, lives:6, wave:53, shape:'diamond'                },
-  magma_titan:  { label:'MAGMA TITAN',  faction:'dark', color:0x3a2020, size:46, speedMult:0.4, hpMult:20.0, reward:180, lives:5, wave:53, shape:'square',  noPrefix:true },
-  shadow_demon: { label:'SHADOW DEMON', faction:'dark', color:0x440033, size:40, speedMult:0.5, hpMult:10.0, reward:80,  lives:4, wave:50, shape:'diamond', bossOnly:true },
-  demon_lord:   { label:'DEMON LORD',   faction:'dark', color:0x880000, size:52, speedMult:0.38,hpMult:27.0, reward:200, lives:6, wave:60, shape:'diamond', bossOnly:true },
+  // ── Dark Magic Faction (waves 31-45) ───────────────────────
+  centaur:      { label:'Centaur',      faction:'dark', color:0xbb6622, size:20, speedMult:1.8, hpMult:0.9,  reward:20,  lives:1, wave:31, shape:'square'                 },
+  gargoyle:     { label:'Gargoyle',     faction:'dark', color:0x777788, size:22, speedMult:1.5, hpMult:1.1,  reward:25,  lives:1, wave:31, shape:'diamond'                },
+  griffin:      { label:'Griffin',      faction:'dark', color:0xddaa00, size:26, speedMult:1.4, hpMult:2.3,  reward:35,  lives:1, wave:33, shape:'circle'                 },
+  minotaur:     { label:'Minotaur',     faction:'dark', color:0x553300, size:32, speedMult:0.9, hpMult:5.2,  reward:55,  lives:2, wave:36, shape:'square'                 },
+  hydra:        { label:'Hydra',        faction:'dark', color:0x224422, size:36, speedMult:0.7, hpMult:8.5,  reward:90,  lives:3, wave:39, shape:'circle'                 },
+  blackdragon:  { label:'BLACK DRAGON', faction:'dark', color:0x110011, size:50, speedMult:0.65,hpMult:20.0, reward:250, lives:6, wave:41, shape:'diamond'                },
+  magma_titan:  { label:'MAGMA TITAN',  faction:'dark', color:0x3a2020, size:46, speedMult:0.4, hpMult:20.0, reward:180, lives:5, wave:41, shape:'square',  noPrefix:true },
+  shadow_demon: { label:'SHADOW DEMON', faction:'dark', color:0x440033, size:40, speedMult:0.5, hpMult:10.0, reward:80,  lives:4, wave:40, shape:'diamond', bossOnly:true },
+  demon_lord:   { label:'DEMON LORD',   faction:'dark', color:0x880000, size:52, speedMult:0.38,hpMult:27.0, reward:200, lives:6, wave:45, shape:'diamond', bossOnly:true },
 };
 
 const BASE_SPEED = 80;
@@ -146,7 +146,7 @@ function localWave(w) {
 }
 
 // ── Elite (second-half) enemies: after the mini-boss falls (local wave 10),
-// the land's lord sends tougher, armored reinforcements for waves 11-20.
+// the land's lord sends tougher, armored reinforcements for waves 11-15.
 const ELITE_PREFIX = { barbarian: 'Iron', undead: 'Cursed', dark: 'Infernal' };
 function isEliteWave(w) { return localWave(w) >= 11; }
 // Extra HP multiplier for elites: ~+35% at wave 11 ramping to ~+98% at wave 20.
@@ -2307,7 +2307,7 @@ function startWaveWithCountdown(scene) {
         countdownActive = false;
         waveActive = true; spawnCount = 0; spawnTimer = 0; interestTimer = 0;
         waveRoster = buildWaveRoster(wave);
-        scene._waveBtnText.setText('Wave ' + wave + '...');
+        scene._waveBtnText.setText('Wave ' + localWave() + '/15');
         const f = FACTIONS[getFactionForWave(wave)];
         if (factionText) factionText.setText(f.name).setColor(f.color);
         if (landText) landText.setText(f.name).setColor(f.color);
@@ -2547,7 +2547,7 @@ function showMinePanel(scene, mx, my) {
 function showGameOver(scene) {
   const survived = wave - 1;
   const landWaveEnd = FACTIONS[restartFaction].waves[1];
-  const infWavesSurvived = infinityMode ? Math.max(0, localWave(survived) - 20) : 0;
+  const infWavesSurvived = infinityMode ? Math.max(0, localWave(survived) - 15) : 0;
 
   if (infinityMode && infWavesSurvived > 0) {
     const prevBest = parseInt(localStorage.getItem('td_best_infinity') || '0');
@@ -2893,7 +2893,7 @@ function create() {
   goldText     = this.add.text(218, HUD_H/2, '💰 Gold: ' + gold, { fontSize: '15px', color: '#ffd700' }).setOrigin(0, 0.5).setDepth(10);
   // Wave box (land name + wave number) sits to the right, just left of the sound button
   landText     = this.add.text(665, 7,  rf.name, { fontSize: '9px',  fontFamily: 'monospace', color: rf.color }).setOrigin(0.5, 0).setDepth(10).setAlpha(0.85);
-  waveText     = this.add.text(665, 17, 'Wave: ' + localWave(), { fontSize: '13px', color: '#ffffff' }).setOrigin(0.5, 0).setDepth(10);
+  waveText     = this.add.text(665, 17, 'Wave: 1/15', { fontSize: '13px', color: '#ffffff' }).setOrigin(0.5, 0).setDepth(10);
   // Sound toggle in the top-right corner
   const muteBtn = this.add.text(785, HUD_H/2, '🔊', { fontSize: '16px' }).setOrigin(0.5, 0.5).setDepth(10).setInteractive({ useHandCursor: true });
   muteBtn.on('pointerdown', () => { const m = SFX.toggleMute(); muteBtn.setText(m ? '🔇' : '🔊'); });
@@ -3346,7 +3346,7 @@ function update(time, delta) {
     const prevWave = wave;
     wave++; waveSize += 3;
     const lw = localWave();
-    const waveLabel = (infinityMode && lw > 20) ? `∞+${lw - 20}` : String(lw);
+    const waveLabel = (infinityMode && lw > 15) ? `∞+${lw - 15}` : `${lw}/15`;
     waveText.setText('Wave: ' + waveLabel);
     refreshShop();
     SFX.play('wave_complete');
@@ -3362,9 +3362,9 @@ function update(time, delta) {
       return;
     }
     if (isLandEnd && infinityMode) {
-      const infWave = localWave(wave) - 20;
+      const infWave = localWave(wave) - 15;
       const t = scene_ref.add.text(400, 240,
-        `Wave 20 cleared!\nThe darkness grows... ∞+${infWave}`, {
+        `Wave 15 cleared!\nThe darkness grows... ∞+${infWave}`, {
         fontSize: '18px', fontFamily: 'Arial Black', color: '#ffaa44', align: 'center',
         stroke: '#000', strokeThickness: 5
       }).setOrigin(0.5).setDepth(40).setAlpha(0);
