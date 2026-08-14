@@ -67,11 +67,11 @@ buildPathCells(currentPath);
 // upgrades: [lvl0→1 cost, lvl1→2 cost, lvl2→3 cost]
 const TOWER_TYPES = {
   arrow:  { label: 'Arrow',     cost: 50,  color: 0x4488ff, range: 120, damage: 20,  fireRate: 1000, projColor: 0x88bbff, projSpeed: 300,  dmgColor: '#aaccff', sfxFire: 'arrow',     sfxHit: 'arrow',     unlockWave: 0,  icon: '🏹', desc: 'Fast & cheap',           upgrades: [40,  75,  130] },
-  pitch:  { label: 'Pitch',     cost: 75,  color: 0x442200, range: 100, damage: 8,   fireRate: 1500, projColor: 0x221100, projSpeed: 200,  dmgColor: '#886633', sfxFire: 'cannon',    sfxHit: 'cannon',    unlockWave: 0,  icon: '🏺', desc: 'Slows enemies',          upgrades: [45,  85,  150], slowPct: 0.20, slowPctPerLevel: 0.05 },
+  pitch:  { label: 'Pitch',     cost: 75,  color: 0x442200, range: 100, damage: 20,  fireRate: 1500, projColor: 0x221100, projSpeed: 200,  dmgColor: '#886633', sfxFire: 'cannon',    sfxHit: 'cannon',    unlockWave: 0,  icon: '🏺', desc: 'Slows enemies',          upgrades: [45,  85,  150], slowPct: 0.20, slowPctPerLevel: 0.05 },
   cannon: { label: 'Cannon',    cost: 100, color: 0xff8800, range: 100, damage: 60,  fireRate: 2000, projColor: 0xff4400, projSpeed: 220,  dmgColor: '#ff8844', sfxFire: 'cannon',    sfxHit: 'cannon',    unlockWave: 0,  icon: '💣', desc: 'Slow, hard hit',         upgrades: [55,  100, 175] },
   sniper: { label: 'Trebuchet', cost: 150, color: 0xaa44ff, range: 220, damage: 45,  fireRate: 2500, projColor: 0xdd88ff, projSpeed: 500,  dmgColor: '#dd88ff', sfxFire: 'trebuchet', sfxHit: 'trebuchet', unlockWave: 0, icon: '🪨', desc: 'Long range',             upgrades: [65,  120, 210] },
-  tesla:  { label: 'Titan',     cost: 300, color: 0x88aacc, range: 150, damage: 115, fireRate: 1600, projColor: 0xeeeeff, projSpeed: 999,  dmgColor: '#aaddff', sfxFire: 'tesla',     sfxHit: 'tesla',     unlockWave: 7,  icon: '🗿', desc: 'Lightning bolts',        upgrades: [100, 175, 300] },
-  flame:  { label: 'Dragon',    cost: 450, color: 0x44bb44, range: 80,  damage: 185, fireRate: 650,  projColor: 0xff6600, projSpeed: 180,  dmgColor: '#ff4400', sfxFire: 'flame',     sfxHit: 'flame',     unlockWave: 11, icon: '🐉', desc: 'Fire breath, close range', upgrades: [120, 210, 360] },
+  tesla:  { label: 'Titan',     cost: 300, color: 0x88aacc, range: 150, damage: 150, fireRate: 1600, projColor: 0xeeeeff, projSpeed: 999,  dmgColor: '#aaddff', sfxFire: 'tesla',     sfxHit: 'tesla',     unlockWave: 7,  icon: '🗿', desc: 'Lightning bolts',        upgrades: [100, 175, 300] },
+  flame:  { label: 'Dragon',    cost: 450, color: 0x44bb44, range: 120, damage: 250, fireRate: 650,  projColor: 0xff6600, projSpeed: 180,  dmgColor: '#ff4400', sfxFire: 'flame',     sfxHit: 'flame',     unlockWave: 11, icon: '🐉', desc: 'Fire breath, close range', upgrades: [120, 210, 360] },
 };
 
 // ── Enemy factions & types ────────────────────────────────────
