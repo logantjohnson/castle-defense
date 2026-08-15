@@ -71,7 +71,7 @@ const TOWER_TYPES = {
   cannon: { label: 'Cannon',    cost: 100, color: 0xff8800, range: 100, damage: 60,  fireRate: 2000, projColor: 0xff4400, projSpeed: 220,  dmgColor: '#ff8844', sfxFire: 'cannon',    sfxHit: 'cannon',    unlockWave: 0,  icon: '💣', desc: 'Slow, hard hit',         upgrades: [55,  100, 175] },
   sniper: { label: 'Trebuchet', cost: 150, color: 0xaa44ff, range: 220, damage: 45,  fireRate: 2500, projColor: 0xdd88ff, projSpeed: 500,  dmgColor: '#dd88ff', sfxFire: 'trebuchet', sfxHit: 'trebuchet', unlockWave: 0, icon: '🪨', desc: 'Long range',             upgrades: [65,  120, 210] },
   tesla:  { label: 'Titan',     cost: 300, color: 0x88aacc, range: 150, damage: 130, fireRate: 1600, projColor: 0xeeeeff, projSpeed: 999,  dmgColor: '#aaddff', sfxFire: 'tesla',     sfxHit: 'tesla',     unlockWave: 7,  icon: '🗿', desc: 'Lightning bolts',        upgrades: [100, 175, 300] },
-  flame:  { label: 'Dragon',    cost: 450, color: 0x44bb44, range: 120, damage: 220, fireRate: 650,  projColor: 0xff6600, projSpeed: 180,  dmgColor: '#ff4400', sfxFire: 'flame',     sfxHit: 'flame',     unlockWave: 11, icon: '🐉', desc: 'Fire breath, close range', upgrades: [120, 210, 360] },
+  flame:  { label: 'Dragon',    cost: 450, color: 0x44bb44, range: 120, damage: 120, fireRate: 650,  projColor: 0xff6600, projSpeed: 180,  dmgColor: '#ff4400', sfxFire: 'flame',     sfxHit: 'flame',     unlockWave: 11, icon: '🐉', desc: 'Splash fire vs groups', upgrades: [120, 210, 360], splashRadius: 55 },
 };
 
 // ── Enemy factions & types ────────────────────────────────────
@@ -105,7 +105,7 @@ const ENEMY_TYPES = {
   ogre:           { label:'Ogre',           faction:'barbarian', color:0xcc6600, size:32, speedMult:0.7, hpMult:3.0,  reward:40,  lives:2, wave:6,  shape:'square'                    },
   troll:          { label:'Troll',          faction:'barbarian', color:0x336633, size:30, speedMult:0.8, hpMult:4.0,  reward:50,  lives:2, wave:9,  shape:'circle'                    },
   cyclops:        { label:'CYCLOPS',        faction:'barbarian', color:0xaa2200, size:44, speedMult:0.5, hpMult:9.0,  reward:120, lives:4, wave:11, shape:'diamond'                   },
-  iron_golem:     { label:'IRON GOLEM',     faction:'barbarian', color:0x7a7a82, size:42, speedMult:0.42,hpMult:11.0, reward:130, lives:4, wave:11, shape:'square',  noPrefix:true    },
+  iron_golem:     { label:'IRON GOLEM',     faction:'barbarian', color:0x7a7a82, size:42, speedMult:0.42,hpMult:11.0, reward:130, lives:4, wave:11, shape:'square',  noPrefix:true, armor:15 },
   warchief:       { label:'ORC WARCHIEF',   faction:'barbarian', color:0xcc1100, size:40, speedMult:0.5, hpMult:8.0,  reward:80,  lives:4, wave:10, shape:'diamond', bossOnly:true    },
   barbarian_king: { label:'BARBARIAN KING', faction:'barbarian', color:0xff2200, size:52, speedMult:0.38,hpMult:20.0, reward:200, lives:6, wave:15, shape:'diamond', bossOnly:true    },
 
@@ -116,7 +116,7 @@ const ENEMY_TYPES = {
   vampire:    { label:'Vampire',     faction:'undead', color:0x880022, size:24, speedMult:1.7, hpMult:2.4,  reward:38,  lives:1, wave:21, shape:'diamond'                  },
   lich:       { label:'Lich',        faction:'undead', color:0x553388, size:28, speedMult:0.9, hpMult:5.5,  reward:70,  lives:2, wave:24, shape:'square'                   },
   bonedragon: { label:'BONE DRAGON', faction:'undead', color:0xeeeedd, size:46, speedMult:0.6, hpMult:13.0, reward:160, lives:5, wave:26, shape:'diamond'                  },
-  bone_colossus:{label:'BONE COLOSSUS',faction:'undead',color:0xddddc8, size:44, speedMult:0.42,hpMult:14.0, reward:150, lives:4, wave:26, shape:'square', noPrefix:true     },
+  bone_colossus:{label:'BONE COLOSSUS',faction:'undead',color:0xddddc8, size:44, speedMult:0.42,hpMult:14.0, reward:150, lives:4, wave:26, shape:'square', noPrefix:true, armor:15 },
   lich_lord:  { label:'LICH LORD',   faction:'undead', color:0x4400aa, size:40, speedMult:0.5, hpMult:9.0,  reward:80,  lives:4, wave:25, shape:'diamond', bossOnly:true   },
   death_lord: { label:'DEATH LORD',  faction:'undead', color:0x0011aa, size:52, speedMult:0.38,hpMult:23.0, reward:200, lives:6, wave:30, shape:'diamond', bossOnly:true   },
 
@@ -127,13 +127,16 @@ const ENEMY_TYPES = {
   minotaur:     { label:'Minotaur',     faction:'dark', color:0x553300, size:32, speedMult:0.9, hpMult:5.2,  reward:55,  lives:2, wave:36, shape:'square'                 },
   hydra:        { label:'Hydra',        faction:'dark', color:0x224422, size:36, speedMult:0.7, hpMult:8.5,  reward:90,  lives:3, wave:39, shape:'circle'                 },
   blackdragon:  { label:'BLACK DRAGON', faction:'dark', color:0x110011, size:50, speedMult:0.65,hpMult:20.0, reward:250, lives:6, wave:41, shape:'diamond'                },
-  magma_titan:  { label:'MAGMA TITAN',  faction:'dark', color:0x3a2020, size:46, speedMult:0.4, hpMult:20.0, reward:180, lives:5, wave:41, shape:'square',  noPrefix:true },
+  magma_titan:  { label:'MAGMA TITAN',  faction:'dark', color:0x3a2020, size:46, speedMult:0.4, hpMult:20.0, reward:180, lives:5, wave:41, shape:'square',  noPrefix:true, armor:18 },
   shadow_demon: { label:'SHADOW DEMON', faction:'dark', color:0x440033, size:40, speedMult:0.5, hpMult:10.0, reward:80,  lives:4, wave:40, shape:'diamond', bossOnly:true },
   demon_lord:   { label:'DEMON LORD',   faction:'dark', color:0x880000, size:52, speedMult:0.38,hpMult:27.0, reward:200, lives:6, wave:45, shape:'diamond', bossOnly:true },
 };
 
 const BASE_SPEED = 80;
 const BASE_HP    = 90;
+// Elite (wave 11+) reinforcements carry armor: each hit is reduced by this flat
+// amount (heavy units define their own higher `armor`). Rewards big-hit towers.
+const ELITE_ARMOR = 8;
 
 function getFactionForWave(w) {
   for (const [key, f] of Object.entries(FACTIONS))
@@ -556,6 +559,9 @@ class Enemy {
     this.slowTimer = 0;
     const eliteBonus = (elite && !def.bossOnly) ? 1.25 : 1;
     this.reward = Math.floor(def.reward * mode.rewardMult * eliteBonus);
+    // Flat per-hit damage reduction. Heavy units define their own armor; other
+    // elite reinforcements get the baseline ELITE_ARMOR. Non-elites have none.
+    this.armor = def.armor != null ? def.armor : (elite ? ELITE_ARMOR : 0);
     this.liveDmg = def.lives;
     this.alive = true; this.reached = false;
     this.x = currentPath[0].x;
@@ -608,8 +614,12 @@ class Enemy {
   }
 
   takeDamage(dmg) {
-    this.hp -= dmg;
+    // Armor subtracts a flat amount, but every hit lands at least 15% of its
+    // raw damage so nothing is fully immune (and upgrades punch through better).
+    const eff = this.armor > 0 ? Math.max(Math.round(dmg * 0.15), dmg - this.armor) : dmg;
+    this.hp -= eff;
     if (this.hp <= 0) { this.hp = 0; this.alive = false; this.destroy(); }
+    return eff;
   }
 
   _syncSprites() {
@@ -948,6 +958,8 @@ class Tower {
       damage: this.damage,
       projColor: this.baseDef.projColor,
       projSpeed: this.baseDef.projSpeed,
+      dmgColor: this.baseDef.dmgColor,
+      splashRadius: this.baseDef.splashRadius || 0,
       slowPct,
       slowDuration: 2000
     }));
@@ -963,6 +975,7 @@ class Projectile {
     this.speed       = def.projSpeed;
     this.slowPct     = def.slowPct     || 0;
     this.slowDuration= def.slowDuration|| 0;
+    this.splashRadius= def.splashRadius || 0;
     this.x = x; this.y = y;
     this.done = false;
     this.dmgColor = def.dmgColor || '#ffffff';
@@ -982,9 +995,24 @@ class Projectile {
     const step = this.speed * (delta / 1000);
 
     if (dist <= step) {
-      this.target.takeDamage(this.damage);
+      const hx = this.target.x, hy = this.target.y;
+      const dealt = this.target.takeDamage(this.damage);
       if (this.slowPct > 0 && this.target.alive) this.target.applySlow(this.slowPct, this.slowDuration);
-      spawnDamageNumber(this.scene, this.target.x, this.target.y - 16, this.damage, this.dmgColor);
+      spawnDamageNumber(this.scene, hx, hy - 16, dealt, this.dmgColor);
+      // Dragon fire breath: splash to every enemy caught in the blast radius
+      if (this.splashRadius > 0) {
+        const r2 = this.splashRadius * this.splashRadius;
+        for (const e of enemies) {
+          if (e === this.target || !e.alive || e.reached) continue;
+          const ex = e.x - hx, ey = e.y - hy;
+          if (ex*ex + ey*ey <= r2) {
+            const sd = e.takeDamage(this.damage);
+            if (this.slowPct > 0 && e.alive) e.applySlow(this.slowPct, this.slowDuration);
+            spawnDamageNumber(this.scene, e.x, e.y - 16, sd, this.dmgColor);
+          }
+        }
+        spawnExplosion(this.scene, hx, hy, 0xff8800, 14);
+      }
       SFX.play(this.sfxHit);
       this.destroy();
     } else {
