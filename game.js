@@ -150,7 +150,7 @@ function localWave(w) {
 const ELITE_PREFIX = { barbarian: 'Iron', undead: 'Cursed', dark: 'Infernal' };
 function isEliteWave(w) { return localWave(w) >= 11; }
 // Extra HP multiplier for elites: ~+35% at wave 11 ramping to ~+98% at wave 20.
-function eliteHpFactor(w) { const lw = localWave(w); return lw >= 11 ? 1.35 + (lw - 11) * 0.07 : 1; }
+function eliteHpFactor(w) { const lw = localWave(w); return lw >= 11 ? 1.25 + (lw - 11) * 0.05 : 1; }
 
 function buildWaveRoster(wave) {
   const faction = getFactionForWave(wave);
@@ -549,12 +549,13 @@ class Enemy {
     const elite = isEliteWave(wave) && !def.bossOnly;
     this.elite = elite;
     const eliteMul = elite ? eliteHpFactor(wave) : 1;
-    const hp = Math.floor(BASE_HP * def.hpMult * landDiff * mode.hpMult * eliteMul * (1 + localWave(wave) * 0.22));
+    const hp = Math.floor(BASE_HP * def.hpMult * landDiff * mode.hpMult * eliteMul * (1 + localWave(wave) * 0.18));
     this.maxHp = hp; this.hp = hp;
     this.speed = BASE_SPEED * def.speedMult;
     this.slowMult = 1.0;
     this.slowTimer = 0;
-    this.reward = Math.floor(def.reward * mode.rewardMult);
+    const eliteBonus = (elite && !def.bossOnly) ? 1.25 : 1;
+    this.reward = Math.floor(def.reward * mode.rewardMult * eliteBonus);
     this.liveDmg = def.lives;
     this.alive = true; this.reached = false;
     this.x = currentPath[0].x;
